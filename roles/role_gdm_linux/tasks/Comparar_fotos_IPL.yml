@@ -1,0 +1,55 @@
+---
+- name: Tareas por bloques - Validacion formato CRQ o ICR
+  block:
+    - name: Validando Formato de Cambio o Incidente
+      assert:
+        that:
+          - idcrqincreq | string | regex_search('(CRQ|INC|REQ)[0-9]{12}')
+        fail_msg: "El CRQ, INC o REQ no cumplen con la condiciones del formato"
+        success_msg: "El CRQ, INC o REQ cumplen con las condiciones del formato"
+      run_once: true
+      delegate_to: localhost
+
+- name: Comparar evidencias posterior al IPL del OS Windows
+  block:
+#    - include_tasks: crea_repositorio_mail.yml
+        
+    - shell: echo $(date +%d%m%Y_%H%M)
+      register: hrfchaps
+
+    - set_fact:
+        clean_hrfchaps: "{{ hrfchaps.stdout }}"
+
+    - file:
+        path: "{{ gdmmailrepo }}{{ idcrqincreq }}_{{ inventory_hostname.split('.')[0] }}_{{ hostvars[inventory_hostname].ipaddress }}_foto_diff_sso_pp_aps_{{ clean_hrfchaps }}.txt"
+        state: touch
+
+    - name: Compara evidencia de servicios previas y posteriores al IPL del OS Windows
+      shell: "sdiff {{ gdmmailrepo }}{{ idcrqincreq }}_{{ inventory_hostname.split('.')[0] }}_{{ hostvars[inventory_hostname].ipaddress }}_foto_sso_pp_aps_previa.txt {{ gdmmailrepo }}{{ idcrqincreq }}_{{ inventory_hostname.split('.')[0] }}_{{ hostvars[inventory_hostname].ipaddress }}_foto_sso_pp_aps_posterior.txt"
+      register: dif_sso_pp_aps
+      failed_when: dif_sso_pp_aps.rc not in [0, 1]
+#        echo "
+#        NOTA:
+#        (<=) Indica, servicios que no estaban activos posterior al IPL, favor solicitar la activacion de los servicios.
+#        (=>) Indica, servicios que no estaban activos previo IPL y activos posterior al IPL, favor de contactar a InfraWindows.
+#        (== o ' ') Indica, todos los servicios activos previo y posterrios al IPL
+#
+#        IMPORTAMTE:
+#        Activar servicios en Windows utilizando PowerShell.
+#        1. En una ventada Powershell como Administrador.
+#        2. Ejecutar, Start-Service -Name [Nombre del Servicio]
+#        3. Ver servicios [Nombre del Servicio]
+#           Referencia lo que ve entre Running y Automatic/Manual
+#           Ejemplo
+#           Start-Service -Name PatrolAgent"
+#      register: dif_sso_pp_aps  
+#      
+    - set_fact:
+        dif_total_sso_pp_aps: "{{ dif_sso_pp_aps.stdout_lines }}"
+
+    - copy:
+        content: "{{ dif_total_sso_pp_aps  | join('\n') }}"
+        dest: "{{ gdmmailrepo }}{{ idcrqincreq }}_{{ inventory_hostname.split('.')[0] }}_{{ hostvars[inventory_hostname].ipaddress }}_foto_diff_sso_pp_aps_{{ clean_hrfchaps }}.txt"
+        mode: '0644'
+  delegate_to: lvpapansiblmx01.bvm.bluecare.kyndryl.net
+#Autor Julio Hoyos

@@ -1,0 +1,37 @@
+- name: Reiniciar proceso Control-M_Agent
+  become: yes
+  shell: |
+    /controlm/ag700/ctm/scripts/stop-ag 2>/dev/null -u ag700 -p ALL
+    /ctrlmagt/ctm/scripts/stop-ag 2>/dev/null -u ag700 -p ALL-
+    sleep 10
+    /controlm/ag700/ctm/scripts/start-ag 2>/dev/null -u ag700 -p ALL
+    /ctrlmagt/ctm/scripts/start-ag 2>/dev/null -u ag700 -p ALL
+  ignore_errors: true
+  
+- name: Validar proceso Control-M_Agent
+  shell: |
+      if [ $(ps -eo args | grep -v grep | egrep "ctmag$|ctmat$|ctmatw" | wc -l) -eq 3 ]
+      then
+      echo ACTIVO
+      elif [ $(ps -eo args | grep -v grep | egrep "ctmag$|ctmat$|ctmatw" | wc -l) -eq 1 ]
+      then
+      echo REINICIO_FALLIDO
+      elif [ $(ps -eo args | grep -v grep | egrep "ctmag$|ctmat$|ctmatw" | wc -l) -eq 2 ]
+      then
+      echo REINICIO_FALLIDO
+      fi
+  register: statusca
+  
+- name: Resultado de la alta del proceso Control-M_Agent
+  debug:
+    msg:
+       - "CapacityAgent ........{{ statusca.stdout }}"
+  when: statusca.stdout == "ACTIVO"
+  
+- name: Resultado de la alta del proceso Control-M_Agent
+  fail:
+    msg:
+       - "Control-M_Agent ........{{ statusca.stdout }}"
+       - "No todos los procesos de Control-M_Agent estan ACTIVOS"
+       - "Escalar con el área de gestion de Mallas Control-M"
+  when: statusca.stdout == "REINICIO_FALLIDO"

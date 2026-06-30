@@ -1,0 +1,27 @@
+---
+- name: Tareas por bloques - BlackOut Monitoring
+  block:
+    - name: Ejecutar plantilla BlackOut-BlackIn
+      uri:
+        url: "{{ tower_base_url }}/api/v2/job_templates/133305/launch/"
+        validate_certs: false
+        force_basic_auth: true
+        status_code: [200, 201, 204, 400]
+        method: POST
+        headers:
+          Authorization: "Bearer {{ tower_token }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          inventory: 125
+          credentials: [513,2463,3886]
+          limit: "{{ ansible_limit }}"
+          extra_vars:
+            '{ "idcrqincreq": "{{ accionjtp1.idcrqincreq | trim }}",
+            "tarea": "{{ accionjtp1.tarea }}" }'
+      register: lanzar_plantilla
+  delegate_to: localhost
+  run_once: true
+
+- name: Run BlackIn Monitoring
+  include_tasks: check_blackout.yml

@@ -1,0 +1,43 @@
+---
+- name: Baja proceso Control-M_Agent
+  become: true
+  shell: |
+      CTMFSNP=$(df -k | tr -s ' ' , | grep '\w*controlm' | cut -d, -f6)
+      CTMFSNS=$(df -k | tr -s ' ' , | grep '\w*ctrlmagt' | cut -d, -f6)
+      CTMEXPC=$(ps -eo args | egrep -i "ctmag$|ctmat$" | sort | uniq | wc -l)
+
+      if [ "$CTMFSNP" = "/controlm/ag700" ]; then
+        CTMFS="$(ls 2>/dev/null -1R $CTMFSNP | grep 'ctm/scripts:$' | tr ":" "/")"
+      elif [ "$CTMFSNS" = "/ctrlmagt" ]; then
+        CTMFS=$(ls 2>/dev/null -1R $CTMFSNS | grep 'ctm/scripts:$' | tr ":" "/")
+      fi
+      
+      if [ $CTMEXPC -ge 1 ]; then
+        cd "$CTMFS"
+        ./shut-ag -u ag700 -p ALL
+      fi
+  args:
+    executable: /bin/bash
+  ignore_errors: yes
+
+- name: Validar proceso Control-M_Agent
+  shell: |
+      if [ $(ps -eo args | grep ctma\w* | grep -v grep | wc -l) -eq 0 ]
+      then
+      echo INACTIVO
+      fi
+  register: statuscm
+  
+- name: Resultado de la baja del proceso Control-M_Agent
+  debug:
+    msg:
+       - "Control-M_Agent ........{{ statuscm.stdout }}"
+  when: statuscm.stdout == "INACTIVO"
+
+- name: Resultado de la baja del proceso Control-M_Agent
+  fail:
+    msg:
+       - "Control-M_Agent ........{{ statuscm.stdout }}"
+       - "No se pudo INACTIVAR de forma correcta"
+       - "Escalar con el área de InfraLinux-Unix"
+  when: statuscm.stdout == "INACTIVACION FALLIDA"

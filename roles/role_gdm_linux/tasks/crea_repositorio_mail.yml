@@ -1,0 +1,30 @@
+---
+- name: Repositorio de evidencias GDM Linux
+  block:
+    - name: Validar si existe el repositorio de evidencias GDM Linux
+      stat:
+        path: "{{ gdmmailrepo }}"
+      register: lnx_repo
+  
+    - name: Crear repositorio de evidencias GDM Linux
+      file:
+        path: "{{ gdmmailrepo }}"
+        state: directory
+      when: lnx_repo.stat.exists == false
+  run_once: true    
+  delegate_to: "{{ repo_server }}"
+
+#- name: Repositorio de evidencias GDM Linux
+#  block:
+#    - name: Validar si existe el repositorio de evidencias GDM Linux
+#      stat:
+#        path: "{{ gdmmailrepo }}"
+#      register: lnx_repo
+#  
+#    - name: Crear repositorio de evidencias GDM Linux
+#      file:
+#        path: "{{ gdmrepoevids }}"
+#        state: directory
+#      when: lnx_repo.stat.exists == false
+#  run_once: true
+#  delegate_to: localhost

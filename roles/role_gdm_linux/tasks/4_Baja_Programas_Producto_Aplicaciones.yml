@@ -1,0 +1,292 @@
+---
+- name: Tareas por bloques - Validacion formato CRQ o ICR
+  block:
+    - name: Validando Formato de Cambio o Incidente
+      assert:
+        that:
+          - idcrqincreq | string | regex_search('(CRQ|INC|REQ)[0-9]{12}')
+        fail_msg: "El CRQ, INC o REQ no cumplen con la condiciones del formato"
+        success_msg: "El CRQ, INC o REQ cumplen con las condiciones del formato"
+      run_once: true
+      delegate_to: localhost
+
+- name: Bajas de Programas Producto antes de IPL de OS Linux
+  block:
+    - name: Baja de Programas Producto
+      shell: if [ -f {{ gdmfsasb }}patrol.asb ]; then echo baja; fi
+      register: baja_patrol
+
+    - include_tasks: bajas_ppaps/baja_patrol.yml
+      when: baja_patrol.stdout == "baja"
+
+    - shell: if [ -f {{ gdmfsasb }}capacity.asb ]; then echo baja; fi
+      register: baja_capacity
+
+    - include_tasks: bajas_ppaps/baja_capacity.yml
+      when: baja_capacity.stdout == "baja"
+
+    - shell: if [ -f {{ gdmfsasb }}ctm.asb ]; then echo baja; fi
+      register: baja_controlm
+
+    - include_tasks: bajas_ppaps/baja_controlm.yml
+      when: baja_controlm.stdout == "baja"
+
+    - shell: if [ -f {{ gdmfsasb }}dim.asb ]; then echo baja; fi
+      register: baja_dimensions
+
+    - include_tasks: bajas_ppaps/baja_dimensions.yml
+      when: baja_dimensions.stdout == "baja"
+
+    - shell: if [ -f {{ gdmfsasb }}cd.asb ]; then echo baja; fi
+      register: baja_connectdirect
+
+    - include_tasks: bajas_ppaps/baja_connectdirect.yml
+      when: baja_connectdirect.stdout == "baja"
+
+#    - shell: if [ -f {{ gdmfsasb }}s1.asb ]; then echo baja; fi
+#      register: baja_s1
+
+#    - include_tasks: bajas_ppaps/baja_sentinelone.yml
+#      when: baja_s1.stdout == "baja"
+  ignore_errors: true
+- name: Bajas de Aplicaciones antes de IPL de OS Linux
+  block:
+    - name: Baja Aplicaciones
+      shell: if [ -f {{ gdmfsasb }}httpserver80s.asb ]; then echo baja; fi
+      register: baja_http80s
+
+    - shell: |
+        for https in $(cat {{ gdmfsasb }}httpserver80s.asb)
+        do
+          $https stop
+        done
+      when: baja_http80s.stdout == "baja"
+
+    - shell: if [ -f {{ gdmfsasb }}httpserver80d.asb ]; then echo baja; fi
+      register: baja_http80d
+      ignore_errors: true
+
+    - shell: |
+        for https in $(cat {{ gdmfsasb }}httpserver80d.asb)
+        do
+          $https stop
+        done
+      when: baja_http80d.stdout == "baja"
+      ignore_errors: true
+
+    - shell: if [ -f {{ gdmfsasb }}httpserver85d.asb ]; then echo baja; fi
+      register: baja_http85s
+
+    - shell: |
+        for https in $(cat {{ gdmfsasb }}httpserver85s.asb)
+        do
+          $https stop
+        done
+      become: true
+      become_user: was60
+      become_method: su
+      become_exe: sudo su -
+      when: baja_http85s.stdout == "baja"
+      ignore_errors: true
+
+    - shell: if [ -f {{ gdmfsasb }}httpserver85d.asb ]; then echo baja; fi
+      register: baja_http85d
+
+    - shell: |
+        for https in $(cat {{ gdmfsasb }}httpserver85d.asb)
+        do
+          $https stop
+        done
+      become: true
+      become_user: was60
+      become_method: su
+      become_exe: sudo su -
+      when: baja_http85d.stdout == "baja"
+      ignore_errors: true
+
+    - shell: if [ -f {{ gdmfsasb }}httpserver90d.asb ]; then echo baja; fi
+      register: baja_http90s
+
+    - shell: |
+        for https in $(cat {{ gdmfsasb }}httpserver90s.asb)
+        do
+          $https stop
+        done
+      become: true
+      become_user: was60
+      become_method: su
+      become_exe: sudo su -
+      when: baja_http90s.stdout == "baja"
+      ignore_errors: true
+
+    - shell: if [ -f {{ gdmfsasb }}httpserver90d.asb ]; then echo baja; fi
+      register: baja_http90d
+
+    - shell: |
+        for https in $(cat {{ gdmfsasb }}httpserver90d.asb)
+        do
+          $https stop
+        done
+      become: true
+      become_user: was60
+      become_method: su
+      become_exe: sudo su -
+      when: baja_http90d.stdout == "baja"
+      ignore_errors: true
+
+    - shell: if [ -f {{ gdmfsasb }}websphere80.asb ]; then echo "/WebSphere80/"; fi
+      register: wasversion
+
+    - name: Ejecutar script baja Clusters WebSphere80
+      shell: |
+        export PATH=$PATH:/sbin:/usr/sbin
+        CLUSTER_R=$(ls -1R {{ wasversion.stdout }} | grep clusters:$ | grep "App\w*/pro\w*/Dmg\w*/con\w*/cel\w*/$(uname -n)" | tr ":" "/")
+        CLUSTER_I=$(ls -1 $CLUSTER_R)
+        for cluws insi in $CLUSTER_I
+          do
+          ./wsadmin.sh -lang jython -f ./Baja_Cluster.py $cluwasi
+          done
+      args:
+        chdir: "{{ wasversion.stdout }}AppServer/profiles/Dmgr01/bin/"
+      environment:
+        PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:{{ ansible_env.PATH }}"
+      when: "'WebSphere80' in wasversion.stdout"
+      ignore_errors: true
+
+    - shell: if [ -f {{ gdmfsasb }}websphere85.asb ]; then echo "/WebSphere85/"; fi
+      register: wasversion
+
+    - name: Ejecutar script baja Clusters WebSphere85
+      become: true
+      become_user: was60
+      become_method: su
+      become_exe: sudo su -
+      shell: |
+        export PATH=$PATH:/sbin:/usr/sbin
+        CLUSTER_R=$(ls -1R {{ wasversion.stdout }} | grep clusters:$ | grep "App\w*/pro\w*/Dmg\w*/con\w*/cel\w*/$(uname -n)" | tr ":" "/")
+        CLUSTER_I=$(ls -1 $CLUSTER_R)
+        for cluws insi in $CLUSTER_I
+          do
+          ./wsadmin.sh -lang jython -f ./Baja_Cluster.py $cluwasi
+          done
+      args:
+        chdir: "{{ wasversion.stdout }}AppServer/profiles/Dmgr01/bin/"
+      environment:
+        PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:{{ ansible_env.PATH }}"
+      when: "'WebSphere85' in wasversion.stdout"
+      ignore_errors: true
+
+    - shell: if [ -f {{ gdmfsasb }}websphere90.asb ]; then echo "/WebSphere90/"; fi
+      register: wasversion
+
+    - name: Ejecutar script baja Clusters WebSphere90
+      become: true
+      become_user: was60
+      become_method: su
+      become_exe: sudo su -
+      shell: |
+        export PATH=$PATH:/sbin:/usr/sbin
+        CLUSTER_R=$(ls -1R {{ wasversion.stdout }} | grep clusters:$ | grep "App\w*/pro\w*/Dmg\w*/con\w*/cel\w*/$(uname -n)" | tr ":" "/")
+        CLUSTER_I=$(ls -1 $CLUSTER_R)
+        for cluws insi in $CLUSTER_I
+          do
+          ./wsadmin.sh -lang jython -f ./Baja_Cluster.py $cluwasi
+          done
+      args:
+        chdir: "{{ wasversion.stdout }}AppServer/profiles/Dmgr01/bin/"
+      environment:
+        PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:{{ ansible_env.PATH }}"
+      when: "'WebSphere90' in wasversion.stdout"
+      ignore_errors: true
+#----
+    - shell: if [ -f {{ gdmfsasb }}mqm.asb ]; then echo baja; fi
+      register: baja_mqm
+
+    - name: Baja canales MQ
+      become: true
+      become_user: mqm
+      become_method: su
+      become_exe: sudo su -
+      shell: |
+        for i ins in$(cat {{ gdmfsasb }}mqm.asb)
+        do
+        $(cat {{ gdmfsasb }}mqmb.asb) $i
+        done
+      environment:
+        PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:{{ ansible_env.PATH }}"
+      when: "'baja' in baja_mqm.stdout"
+      ignore_errors: true
+
+    - shell: if [ -f {{ gdmfsasb }}mqm8.asb ]; then echo baja; fi
+      register: baja_mqm8
+
+    - name: Baja canales MQ
+      become: true
+      become_user: mqm
+      become_method: su
+      become_exe: sudo su -
+      shell: |
+        for i ins in$(cat {{ gdmfsasb }}mqm8.asb)
+        do
+        $(cat {{ gdmfsasb }}mqm8b.asb) $i
+        done
+      environment:
+        PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:{{ ansible_env.PATH }}"
+      when: "'baja' in baja_mqm8.stdout"
+      ignore_errors: true
+
+    - shell: if [ -f {{ gdmfsasb }}mqm9.asb ]; then echo baja; fi
+      register: baja_mqm9
+
+    - name: Baja canales MQ
+      become: true
+      become_user: mqm
+      become_method: su
+      become_exe: sudo su -
+      shell: |
+        for i ins in$(cat {{ gdmfsasb }}mqm9.asb)
+        do
+        $(cat {{ gdmfsasb }}mqm9b.asb) $i
+        done
+      environment:
+        PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:{{ ansible_env.PATH }}"
+      when: "'baja' in baja_mqm9.stdout"
+      ignore_errors: true
+
+    - name: Baja MQ90
+      shell: if [ -f {{ gdmfsasb }}mqm90.asb ]; then echo baja; fi
+      register: baja_mqm90
+
+    - name: Baja canales MQ
+      become: true
+      become_user: mqm
+      become_method: su
+      become_exe: sudo su -
+      shell: |
+        for i ins in$(cat {{ gdmfsasb }}mqm90.asb)
+        do
+        $(cat {{ gdmfsasb }}mqm90b.asb) $i
+        done
+      environment:
+        PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:{{ ansible_env.PATH }}"
+      when: "'baja' in baja_mqm90.stdout"
+      ignore_errors: true
+
+    - name: Baja MQ93
+      shell: if [ -f {{ gdmfsasb }}mqm93.asb ]; then echo baja; fi
+      register: baja_mqm93
+
+    - name: Baja canales MQ
+      become: true
+      become_user: mqm
+      become_method: su
+      become_exe: sudo su -
+      shell: |
+        for i ins in$(cat {{ gdmfsasb }}mqm93.asb)
+        do
+        $(cat {{ gdmfsasb }}mqm93b.asb) $i
+        done
+      environment:
+        PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:{{ ansible_env.PATH }}"
+      when: "'baja' in baja_mqm93.stdout"
+      ignore_errors: true

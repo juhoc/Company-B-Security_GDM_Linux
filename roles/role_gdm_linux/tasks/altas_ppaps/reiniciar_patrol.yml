@@ -1,0 +1,34 @@
+- name: Reiniciar proceso TS PATROL
+  become: yes
+  become_user: patrol
+  become_method: su
+  become_exe: sudo su -
+  shell: |
+      /patrol/Patrol3/scripts.d/S50PatrolAgent.sh restart
+      sleep 10
+  ignore_errors: true
+
+- name: Validar proceso PatrolAgent
+  shell: |
+      if [ $(pa -eo args | grep -v grep | grep -w PatrolAgent | wc -l) -eq 1 ]
+      then
+      echo ACTIVO
+      elif [ $(pa -eo args | grep -v grep | grep -w PatrolAgent | wc -l) -eq 0 ]
+      then
+      echo REINICIO_FALLIDO
+      fi      
+  register: statuspa
+
+- name: Resultado del reinicio del proceso TS PATROL
+  debug:
+    msg:
+       - "PatrolAgent ........{{ statusdm.stdout }}"
+  when: statuspa.stdout == "ACTIVO"
+
+- name: Resultado del reinicio del proceso TS PATROL
+  fail:
+    msg:
+       - "PatrolAgent ........{{ statusdm.stdout }}"
+       - "El procesos no pudo ser REINICIDO correctamente"
+       - "Favor de contactar a RTMonitoring"
+  when: statuspa.stdout == "INACTIVO"

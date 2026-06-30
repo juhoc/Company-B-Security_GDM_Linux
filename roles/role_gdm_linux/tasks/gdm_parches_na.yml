@@ -1,0 +1,11 @@
+# ----------- START Instalación de parches RHEL ---------- #
+- name: Block GDM PARCHES
+  block:
+   - name: No disponible
+     debug:
+       msg:
+          - "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+          - "GDM Instalación de parches solo disponible para sistemas RHEL"
+          - "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+
+# ----------- END Instalación de parches RHEL ---------- #

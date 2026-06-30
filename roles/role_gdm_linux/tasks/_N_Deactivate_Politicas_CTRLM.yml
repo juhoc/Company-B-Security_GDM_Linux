@@ -1,0 +1,28 @@
+---
+- name: Tareas por bloques - Contro-M Jobs
+  block:
+    - name: Ejecutar plantilla Contro-M inactivar politicas
+      uri:
+        url: "{{ tower_base_url }}/api/v2/job_templates/147683/launch/"
+        validate_certs: false
+        force_basic_auth: true
+        status_code: [200, 201, 204, 400]
+        method: POST
+        headers:
+          Authorization: "Bearer {{ tower_token }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          inventory: 125
+          credentials: [513,2463,3886]
+          limit: "{{ ansible_limit }}"
+          extra_vars:
+            '{ "operacion_politica_survey": "{{ accionjtp4.operacion_politica_survey | trim }}",
+            "tipo_detencion_survey": "{{ tipo_detencion_survey }}",
+            "nombre_servidor_survey": "{{ nombre_servidor_survey }}" }'
+      register: lanzar_plantilla_ctm_d
+  delegate_to: localhost
+  run_once: true
+
+- name: Run BlackIn Monitoring
+  include_tasks: check_ctrlm_desac.yml

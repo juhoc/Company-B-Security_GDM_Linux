@@ -1,0 +1,69 @@
+---
+- name: Tareas por bloques - Validacion formato CRQ o ICR
+  block:
+    - name: Validando Formato de Cambio o Incidente
+      assert:
+        that:
+          - idcrqincreq | string | regex_search('(CRQ|INC|REQ)[0-9]{12}')
+        fail_msg: "El CRQ, INC o REQ no cumplen con la condiciones del formato"
+        success_msg: "El CRQ, INC o REQ cumplen con las condiciones del formato"
+      run_once: true
+      delegate_to: localhost
+
+- name: Tareas por bloques - Validar Status SSO, PPs y APP's previa al IPL OS Linux
+  block:
+    - name: Assing permissions r+x to ansible directory
+      become: true
+      file:
+        path: "{{ gdmfsasb }}"
+        state: directory
+        owner: bvmuxat2
+        group: automate
+        mode: "0755"
+      ignore_errors: true
+
+    - file:
+        path: "{{ gdmfsasb }}{{ item }}"
+        state: absent
+      loop:
+        - pp_status.sh
+        - aps_status.sh
+        - report_pp_aps.sh
+
+    - name: Copiando script foto previa IPL OS Linux
+      become: yes
+      copy:
+        src: "files/gdm/pre/{{ item }}"
+        dest: "{{ gdmfsasb }}"
+        mode: 0750
+        owner: bvmuxat2
+        group: automate
+      loop:
+        - pp_status.sh
+        - aps_status.sh
+        - report_pp_aps.sh
+
+    - name: Ejecutar script foto previa IPL OS Linux
+      become: true
+      shell: "export PATH=$PATH:/sbin:/usr/sbin && {{ gdmfsasb }}{{ item }}"
+      register: result_accion
+      environment:
+        PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:{{ ansible_env.PATH }}"
+      loop:
+        - pp_status.sh
+        - aps_status.sh
+        - report_pp_aps.sh
+      failed_when: result_accion.rc not in [0, 1]
+
+    - file:
+        path: "{{ gdmfsasb }}{{ item }}"
+        state: absent
+      loop:
+        - pp_status.sh
+        - aps_status.sh
+        - report_pp_aps.sh
+      become: true
+
+    - shell: >
+        mv {{ gdmfsasb }}foto_sso_pp_aps_previa.txt
+        {{ gdmfsasb }}{{ idcrqincreq }}_{{ inventory_hostname.split('.')[0] }}_{{ hostvars[inventory_hostname].ipaddress }}_foto_sso_pp_aps_previa.txt

@@ -1,0 +1,33 @@
+- name: Baja proceso TS PATROL
+  become: yes
+  become_user: patrol
+  become_method: su
+  become_exe: sudo su -
+  shell: |
+    ./S50PatrolAgent.sh stop
+    sleep 10
+  args:
+    chdir: /patrol/Patrol3/scripts.d/
+  ignore_errors: true
+
+- name: Validar proceso PatrolAgent
+  shell: |
+      if [ $(ps -eo args | grep -wi patrolagent | grep -v grep | wc -l) -eq 0 ]
+      then
+      echo INACTIVO
+      fi      
+  register: statuspa
+
+- name: Resultado de la baja del proceso TS PATROL
+  debug:
+    msg:
+       - "PatrolAgent ........{{ statuspa.stdout }}"
+  when: statuspa.stdout == "INACTIVO"
+
+- name: Resultado de la baja del proceso PatrolAgent
+  fail:
+    msg:
+       - "PatrolAgent ........{{ statuspa.stdout }}" 
+       - "El procesos no pudo ser INACTIVADO correctamente"
+       - "Favor de contactar a Monitore"
+  when: statuspa.stdout == "INACTIVACION_FALLIDA"  

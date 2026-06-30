@@ -1,0 +1,113 @@
+---
+- name: Tareas por bloques - Validacion formato CRQ o ICR
+  block:
+    - name: Validando Formato de Cambio o Incidente
+      assert:
+        that:
+          - idcrqincreq | string | regex_search('(CRQ|INC|REQ)[0-9]{12}')
+        fail_msg: "El CRQ, INC o REQ no cumplen con la condiciones del formato"
+        success_msg: "El CRQ, INC o REQ cumplen con las condiciones del formato"
+      run_once: true
+      delegate_to: localhost
+
+- name: Obtener salidas de evidencias previas al IPL de servicios, discos y salud del OS Linux
+  block:
+    - shell: cat {{ gdmfsasb }}{{ idcrqincreq }}_{{ inventory_hostname.split('.')[0] }}_{{ hostvars[inventory_hostname].ipaddress }}_foto_sso_pp_aps_diferencias.txt
+      register: sso_pp_aps_total_pre
+
+    - set_fact:
+        ssoppapspre: "{{ sso_pp_aps_total_pre.stdout_lines }}"
+
+- name: Almacenar evidencias posteriores al IPL de servicios, discos y salud del OS Linux
+  block:
+    - stat:
+        path: "{{ asbgdm }}"
+      register: val_asbgdm
+
+    - file:
+        path: "{{ asbgdm }}"
+        state: directory
+      when: not val_asbgdm.stat.exists
+  run_once: true
+  delegate_to: asitsmaop2.bvm.bluecare.kyndryl.net
+
+- name: Almacenar evidencias posteriores al IPL de servicios, discos y salud del OS Linux
+  block:
+    - copy:
+        content: "{{ ssoppapspre | join('\n') }}"
+        dest: "{{ asbgdm }}/{{ idcrqincreq }}_{{ inventory_hostname.split('.')[0] }}_{{ hostvars[inventory_hostname].ipaddress }}_foto_sso_pp_aps_diferencias.txt"
+  delegate_to: asitsmaop2.bvm.bluecare.kyndryl.net
+
+- name: Empaquetado y envio de evidencias de diferencias en archivo zip
+  block:
+    - name: Buscar y borrar archivos zip
+      find:
+        paths: "{{ asbgdm }}"
+        patterns: "*.zip"
+      register: zip_files
+
+    - file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ zip_files.files }}"
+      when: zip_files.matched > 0
+
+    - find:
+        paths: "{{ asbgdm }}"
+        patterns: "{{ idcrqincreq }}*diferencia*"
+      register: archivos_filtrados
+
+    - archive:
+        path: "{{ archivos_filtrados.files | map(attribute='path') | list }}"
+        dest: "{{ asbgdm }}/{{ idcrqincreq }}_diferencias.zip"
+        format: zip
+        mode: '0644'
+      with_items: "{{ archivos_filtrados.files }}"
+
+    - shell: ls {{ asbgdm }}/{{ idcrqincreq }}_diferencias.zip
+      register: listflzip
+
+    - name: Envio de evidencias previas
+      mail:
+        host: "{{ smtp }}"
+        port: "{{ smtpport }}"
+        from: "{{ mailfrom }}"
+        to: "{{ mailto }}"
+        subject: "Reportes evidencias diferencias GDM Linux Patching"
+        body: "Se adjuntan las evidencias diferencias posterior al IPL"
+        attach: "{{ listflzip.stdout_lines }}"
+      register: valmail
+      no_log: true
+  rescue:    
+    - name: Envio de evidencias previas
+      mail:
+        host: "{{ smtp }}"
+        port: "{{ smtpport }}"
+        from: "{{ mailfrom }}"
+        to: "gabriela.aranda.perez.contractor@bbva.com"
+        subject: "Reportes evidencias diferencias GDM Linux Patching"
+        body: "Se adjuntan las evidencias diferencias posterior al IPL"
+        attach: "{{ listflzip.stdout_lines }}"
+      register: valmail
+  always:
+    - name: Envio de evidencias por folio CRQ, INC o REQ
+      debug:
+        msg: "{{ 'Se envio el correo al buzon o buzones:' + mailto if mailto != '' else 'Se envia el corre al buzon funional gabriela.aranda.perez.contractor@company-xz.net' }}"
+      ignore_errors: true
+  delegate_to: asitsmaop2.bvm.bluecare.kyndryl.net
+  run_once: true
+
+- name: Borrar envio de IPL Total
+  block:
+    - find:
+        paths: "{{ asbgdm }}"
+        file_type: file
+      register: gdmremarch
+
+    - file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ gdmremarch.files }}"
+  no_log: true
+  delegate_to: asitsmaop2.bvm.bluecare.kyndryl.net
+  run_once: true

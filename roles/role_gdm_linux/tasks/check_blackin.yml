@@ -1,0 +1,19 @@
+---
+- name: Tareas por bloques - BlackIn Monitoring
+  block:
+    - name: Sensar plantilla BlackIn
+      uri:
+        url: "{{ lanzar_plantilla.location }}"
+        validate_certs: no
+        force_basic_auth: true
+        method: GET
+        headers:
+          Authorization: Bearer {{ tower_token }}
+        status_code: 200, 201, 204
+      register: trabajos
+      until: trabajos.json.status == 'successful' or trabajos.json.status == 'failed' or trabajos.json.status == 'canceled' 
+      failed_when: trabajos.json.status == 'failed' or trabajos.json.status == 'canceled'
+      delay: "{{ accionjtp2.demora }}"
+      retries: "{{ accionjtp2.reintentos }}"
+  delegate_to: localhost
+  run_once: true

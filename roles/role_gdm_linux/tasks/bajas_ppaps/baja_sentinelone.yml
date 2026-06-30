@@ -1,0 +1,27 @@
+- name: Baja proceso SENTINELONE
+  become: yes
+  shell: sentinelctl control stop --passphrase {{ passphrase }}
+    sleep 10
+  ignore_errors: true
+ 
+- name: Validar proceso SentinelOne
+  shell: |
+      if [ $(ps -eo args | grep -wi "s1-\w*" | grep -v grep | wc -l) -eq 0 ]
+      then
+      echo INACTIVO
+      fi      
+  register: statuss1
+
+- name: Resultado de la baja del proceso SentinelOne
+  debug:
+    msg:
+       - "SentinelOne ........{{ statuspa.stdout }}"
+  when: statuss1.stdout == "INACTIVO"
+
+- name: Resultado de la baja del proceso SentinelOne
+  fail:
+    msg:
+       - "PatrolAgent ........{{ statuss1.stdout }}" 
+       - "El procesos no pudo ser INACTIVADO correctamente"
+       - "Favor de contactar a RTMonitore"
+  when: statuss1.stdout == "INACTIVACION_FALLIDA"  

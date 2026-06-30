@@ -1,0 +1,19 @@
+---
+- name: Tareas por bloques - Control-M Desctivar Politicas Monitoring
+  block:
+    - name: Sensar plantilla Control-M Desactivar Politicas
+      uri:
+        url: "{{ lanzar_plantilla_ctm_d.location }}"
+        validate_certs: no
+        force_basic_auth: true
+        method: GET
+        headers:
+          Authorization: Bearer {{ tower_token }}
+        status_code: 200, 201, 204
+      register: trabajos
+      until: trabajos.json.status == 'successful' or trabajos.json.status == 'failed' or trabajos.json.status == 'canceled' 
+      failed_when: trabajos.json.status == 'failed' or trabajos.json.status == 'canceled'
+      delay: "{{ accionjtp4.demora }}"
+      retries: "{{ accionjtp4.reintentos }}"
+  delegate_to: localhost
+  run_once: true

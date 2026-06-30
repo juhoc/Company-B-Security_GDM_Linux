@@ -1,0 +1,23 @@
+# ----------- START IPL a Sistemas Linux ---------- #
+
+- name: GDM IPL a sistemas Linux y esperar a que regrese en 600 segundos (10 minutos)
+  block:
+   - name: Reiniciar sistemas Linux
+     become: true 
+     reboot:
+       reboot_timeout: 600
+     ignore_errors: true
+
+   - name: Esperar a que el equipo regrese post reinicio de los 600 segundos (10 minutos)
+     wait_for_connection:
+       timeout: 600
+
+   - name: Validar el tiempo de actividad del sistema
+     shell: uptime | cut -d ' ' -f 3,4,5 | tr -d ','
+     register: uptime_result
+     
+   - name: IPL actual
+     debug: 
+       msg: " Nuevo uptime en equipo {{ ansible_facts['nodename'] }} - {{ uptime_result.stdout }} "
+   
+#------------------> END IPL a Sistemas Linux <------------------#

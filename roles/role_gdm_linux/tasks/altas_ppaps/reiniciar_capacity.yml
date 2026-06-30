@@ -1,0 +1,43 @@
+- name: Reinicar proceso CapacityAgent
+  become: yes
+  become_user: patrol
+  become_method: su
+  become_exe: sudo su -
+  shell: |
+      /usr/adm/best1_default/bgs/scripts/best1agent_stop -b /usr/adm/best1_default
+      /etc/bgs/SD/bgssd.exe -d /etc/bgs/SD -k
+      /usr/adm/best1_default/bgs/bin/MrStat -b /usr/adm/best1_default -k
+      sleep 15
+      /etc/bgs/SD/bgssd.exe -d /etc/bgs/SD -s
+      /usr/adm/best1_default/bgs/scripts/best1agent_start -b /usr/adm/best1_default
+      /usr/adm/best1_default/bgs/scripts/best1collect -Q
+      sleep 15
+  ignore_errors: true
+
+- name: Validar proceso CapacityAgent
+  shell: |
+      if [ $(ps -eo args | grep -v grep | egrep "bgsagent|bgscollect|bgssd" | wc -l) -eq 3 ]
+      then
+      echo ACTIVO
+      elif [ $(ps -eo args | grep -v grep | egrep "bgsagent|bgscollect|bgssd" | wc -l) -eq 1 ]
+      then
+      echo REINICIO_FALLIDO
+      elif [ $(ps -eo args | grep -v grep | egrep "bgsagent|bgscollect|bgssd" | wc -l) -eq 2 ]
+      then
+      echo REINICIO_FALLIDO
+      fi
+  register: statusca
+  
+- name: Resultado del reinicio del proceso CapacityAgent
+  debug:
+    msg:
+       - "CapacityAgent ........{{ statusca.stdout }}"
+  when: statusca.stdout == "ACTIVO"
+  
+- name: Resultado del reinicio del proceso CapacityAgent
+  fail:
+    msg:
+       - "CapacityAgent ........{{ statusca.stdout }}"
+       - "No se pudo REACTIVAR de forma correcta"
+       - "Escalar con el área de RTMonitoreo"
+  when: statusca.stdout == "REINICIO_FALLIDO"

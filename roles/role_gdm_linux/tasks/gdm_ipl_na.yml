@@ -1,0 +1,12 @@
+---
+#------------------>START Health Check<------------------#
+- name: Block GDM IPL
+  block:
+   - name: No disponible
+     debug:
+       msg:
+          - "+++++++++++++++++++++++++++++++++++++++++"
+          - "GDM IPL solo disponible para sistemas Linux"
+          - "+++++++++++++++++++++++++++++++++++++++++"
+
+#------------------>END Health Check<------------------#

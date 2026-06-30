@@ -1,0 +1,43 @@
+---
+- name: Alta proceso Control-M 
+  become: true
+  shell: |
+      CTMFSNP=$(df -k | tr -s ' ' , | grep '\w*controlm' | cut -d, -f6)
+      CTMFSNS=$(df -k | tr -s ' ' , | grep '\w*ctrlmagt' | cut -d, -f6)
+      CTMEXPC=$(ps -eo args | egrep -i "ctmag$|ctmat$" | sort | uniq | wc -l)
+
+      if [ "$CTMFSNP" = "/controlm/ag700" ]; then
+        CTMFS="$(ls 2>/dev/null -1R $CTMFSNP | grep 'ctm/scripts:$' | tr ":" "/")"
+      elif [ "$CTMFSNS" = "/ctrlmagt" ]; then
+        CTMFS=$(ls 2>/dev/null -1R $CTMFSNS | grep 'ctm/scripts:$' | tr ":" "/")
+      fi
+      
+      if [ $CTMEXPC -lt 1 ]; then
+        cd "$CTMFS"
+        ./start-ag -u ag700 -p ALL
+      fi
+  args:
+    executable: /bin/bash
+  ignore_errors: yes
+
+- name: Validar proceso Control-M_Agent
+  shell: |
+      if [ $(ps -eo args | grep ctma\w* | grep -v grep | wc -l) -ge 2 ]
+      then
+      echo ACTIVO
+      fi
+  register: statuscm
+
+- name: Resultado de la alta del proceso Control-M_Agent
+  debug:
+    msg:
+       - "Control-M_Agent ........{{ statuscm.stdout }}"
+  when: statuscm.stdout == "ACTIVO"
+
+- name: Resultado de la alta del proceso Control-M_Agent
+  fail:
+    msg:
+       - "Control-M_Agent ........{{ statuscm.stdout }}"
+       - "No se pudo ACTIVAR de forma correcta"
+       - "Escalar con el área de InfraLinux-Unix"
+  when: statuscm.stdout == "ACTIVACION FALLIDA"

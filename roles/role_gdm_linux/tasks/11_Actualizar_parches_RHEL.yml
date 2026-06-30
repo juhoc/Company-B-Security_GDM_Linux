@@ -1,0 +1,133 @@
+---
+- name: Tareas por bloques - Validacion formato CRQ o ICR
+  block:
+    - name: Validando Formato de Cambio o Incidente
+      assert:
+        that:
+          - idcrqincreq | string | regex_search('(CRQ|INC|REQ)[0-9]{12}')
+        fail_msg: "El CRQ, INC o REQ no cumplen con la condiciones del formato"
+        success_msg: "El CRQ, INC o REQ cumplen con las condiciones del formato"
+      run_once: true
+      delegate_to: localhost
+
+# ----------- START Instalación de parches RHEL ---------- #
+
+- name: Infraestructura - send & run script upgrade RHEL
+  block:
+    - name: Check the version of RHEL to transfer the RPM wget to the remote Linux
+      shell: |
+        if [ "{{ ansible_facts['distribution_file_variety'] }}{{ ansible_facts['distribution_major_version'] }}" = "RedHat7" ]; then
+          echo "wget-1.14-18.el7_6.1.x86_64.rpm"
+        elif [ "{{ ansible_facts['distribution_file_variety'] }}{{ ansible_facts['distribution_major_version'] }}" = "RedHat8" ]; then
+          echo "wget-1.19.5-11.el8.x86_64.rpm"
+        fi
+      register: existrpm
+
+    - name: Define the RPM wget version
+      set_fact:
+        software: "{{ existrpm.stdout | string }}"
+        
+    - name: Copying rpm
+      become: true
+      copy:
+        src: files/{{ software }}
+        dest: "{{ destino }}"
+        mode: 0755    
+        
+#    - name: Check if the RPM wget exists on the remote Linux
+#      stat:
+#        path: "{{ destino }}/{{ software }}"
+#        path: "{{ destino }}{{ instala }}/{{ software }}"
+#      register: existrpm
+
+#    - name: Transfer RPM wget sftp method to remote Linux
+#      command: sudo su - {{ usuario }} -c "sftp -o StrictHostKeyChecking=no {{ usuario }}@{{ hostvars[inventory_hostname]['ipaddress'] }} <<< 'put {{ recurso1 }}{{ software }} {{ destino }}{{ instala }}'"
+#      ignore_errors: true
+#      delegate_to: asitsmaop2.bvm.bluecare.kyndryl.net
+#      when: 
+#        - not existrpm.stat.exists
+
+#    - name: Check if the RPM wget exists on the remote Linux
+#      stat:
+#        path: "{{ destino }}/{{ software }}"
+#        path: "{{ destino }}{{ instala }}/{{ software }}"
+#      register: existrpm
+
+#    - name: Transfer RPM wget scp method to remote Linux
+#      command: sudo su - {{ usuario }} -c "scp -o StrictHostKeyChecking=no {{ recurso1 }}{{ software }} {{ usuario }}@{{ hostvars[inventory_hostname]['ipaddress'] }}:{{ destino }}{{ instala }}"
+#      ignore_errors: true
+#      delegate_to: asitsmaop2.bvm.bluecare.kyndryl.net
+#      when: 
+#        - not existrpm.stat.exists
+
+#    - name: Check if the RPM wget exists on the remote Linux
+#      stat:
+#        path: "{{ destino }}{{ instala }}/{{ software }}"
+#      register: existrpm
+
+#- name: Transfer of RPM wget Failed by both SFTP and/or SCP methods
+#  block:
+#    - name: Failure transfer of wget RPM to remote Linux
+#      fail:
+#        msg: 
+#          - "No se pudo transferir el RPM {{ software }} por ningún método SFTP y/o SCP"
+#          - "Favor de validar con el Team de Seguridad para identificar si existen restricciones para los métodos SFTP y/o SCP"
+#      when: not existrpm.stat.exists
+
+#    - name: Successful transfer of wget RPM to remote Linux
+#      debug:
+#        msg: 
+#          - "La transferencia del RPM {{ software }} fue exitosa"
+#          - "En el equipo {{ ansible_facts['nodename'] }}"
+#      when: existrpm.stat.exists
+
+#    - name: Install wget RPM from a local file
+#      dnf:
+#        name: "{{ destino }}/{{ software }}"
+#        state: present
+        
+    - name: Copying script
+      become: true
+      copy:
+        src: files/so_upgrade_mngr_v2.sh
+        dest: "{{ destino }}"
+        mode: 0755
+        
+    - name: Privileges on FS ANSIBLE
+      become: true
+      file:
+        path: "{{ destino }}"
+        state: directory
+        recurse: true
+        mode: 0755
+
+    - name: Run script infrastructure patches
+      become: true
+      shell: "export PATH=$PATH:/sbin:/usr/sbin && {{ destino }}/so_upgrade_mngr_v2.sh"
+      register: report_patch_infra
+      environment:
+         PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:{{ ansible_env.PATH }}"
+         
+    - name: Delete script
+      become: true
+      file: 
+        path: "{{ destino }}/{{ item }}"
+        state: absent
+      loop: 
+        - so_upgrade_mngr_v2.sh
+        - "{{ software }}"
+
+#    - name: Run script infrastructure patches
+#      become: true
+#      shell: |
+#        if [ -f ~/.profile ]; then
+#        . ./.profile 
+#        cd /var/opt/ansible
+#        ./so_upgrade_mngr_v2.sh
+#        else
+#        cd /var/opt/ansible
+#        ./so_upgrade_mngr_v2.sh
+#        fi
+#      register: report_patch_infra
+      
+# ----------- END Instalación de parches RHEL ---------- #

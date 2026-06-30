@@ -1,0 +1,39 @@
+- name: Alta proceso CapacityAgent
+  become: yes
+  become_user: patrol
+  become_method: su
+  become_exe: sudo su -
+  shell: |
+      /etc/bgs/SD/bgssd.exe -d /etc/bgs/SD -s
+      /usr/adm/best1_default/bgs/scripts/best1agent_start -b /usr/adm/best1_default
+      /usr/adm/best1_default/bgs/scripts/best1collect -Q
+      sleep 10
+  ignore_errors: true
+
+- name: Validar proceso CapacityAgent
+  shell: |
+      if [ $(ps -eo args | grep -v grep | egrep "bgsagent|bgscollect|bgssd" | wc -l) -eq 3 ]
+      then
+      echo ACTIVO
+      elif [ $(ps -eo args | grep -v grep | egrep "bgsagent|bgscollect|bgssd" | wc -l) -eq 1 ]
+      then
+      echo ACTIVACION_FALLIDA
+      elif [ $(ps -eo args | grep -v grep | egrep "bgsagent|bgscollect|bgssd" | wc -l) -eq 2 ]
+      then
+      echo ACTIVACION_FALLIDA
+      fi
+  register: statusca
+  
+- name: Resultado de la alta del proceso CapacityAgent
+  debug:
+    msg:
+       - "CapacityAgent ........{{ statusca.stdout }}"
+  when: statusca.stdout == "ACTIVO"
+  
+- name: Resultado de la alta del proceso CapacityAgent
+  fail:
+    msg:
+       - "CapacityAgent ........{{ statusca.stdout }}"
+       - "No se pudo ACTIVAR de forma correcta"
+       - "Escalar con el área de Monitoreo"
+  when: statusca.stdout == "ACTIVACION_FALLIDA"

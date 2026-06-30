@@ -1,0 +1,34 @@
+- name: Alta proceso PatrolAgent
+  become: yes
+  become_user: patrol
+  become_method: su
+  become_exe: sudo su -
+  shell: |
+      /patrol/Patrol3/scripts.d/S50PatrolAgent.sh start
+      sleep 10
+  ignore_errors: true
+
+- name: Validar proceso PatrolAgent
+  shell: |
+      if [ $(ps -eo args | grep -v grep | grep -w PatrolAgent | wc -l) -eq 1 ]
+      then
+      echo ACTIVO
+      elif [ $(ps -eo args | grep -v grep | grep -w PatrolAgent | wc -l) -eq 0 ]
+      then
+      echo ACTIVACION_FALLIDA
+      fi      
+  register: statuspa
+
+- name: Resultado de la alta del proceso PatrolAgent
+  debug:
+    msg:
+       - "PatrolAgent ........{{ statuspa.stdout }}"
+  when: statuspa.stdout == "ACTIVO"
+
+- name: Resultado de la alta del proceso PatrolAgent
+  fail:
+    msg:
+       - "PatrolAgent ........{{ statuspa.stdout }}" 
+       - "El procesos no pudo ser ACTIVADO correctamente"
+       - "Favor de contactar a Monitore"
+  when: statuspa.stdout == "ACTIVACION_FALLIDA"

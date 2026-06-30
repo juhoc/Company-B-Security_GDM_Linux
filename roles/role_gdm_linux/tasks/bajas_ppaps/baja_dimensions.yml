@@ -1,0 +1,28 @@
+- name: Baja proceso Dimension
+  become: true
+  shell: |
+    /opt/dimensions/[1-9][1-9].[1-9]/cm/prog/dmshutdown 2>/dev/null
+    sleep 10
+  ignore_errors: true
+  
+- name: Validacion procesos Dimension
+  shell: |
+      if [ $(ps -eo args | grep dimension\w* | grep -v grep | wc -l) -eq 0 ]
+      then
+      echo INACTIVO
+      fi
+  register: statusdm
+  
+- name: Resultado de la baja del proceso Dimension
+  debug:
+    msg:
+       - "Dimension ........{{ statusdm.stdout }}"
+  when: statusdm.stdout == "INACTIVO"
+
+- name: Resultado de la baja del proceso Dimension
+  fail:
+    msg:
+       - "Dimensions ........{{ statusdm.stdout }}"
+       - "No todos los procesos de Dimension estan INACTIVOS"
+       - "Escalar con el área de gestion de Dimensions"
+  when: statusdm.stdout == "INACTIVACION_FALLIDA"  

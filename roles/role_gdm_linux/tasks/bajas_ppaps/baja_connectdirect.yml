@@ -1,0 +1,33 @@
+- name: Baja proceso Connect Direct
+  become: true
+  become_user: ndm36
+  become_method: su
+  become_exe: sudo su -
+  shell: |
+      ./stopcd.sh
+      sleep 10
+  args:
+    chdir: /NDM36/depura/
+  ignore_errors: true
+
+- name: Validar proceso Connect Direct
+  shell: |
+      if [ $(ps -eo args | egrep -wi "cdpmgr|cdstatm" | grep -v grep | wc -l) -eq 0 ]
+      then
+      echo INACTIVO
+      fi  
+  register: statuscd
+
+- name: Resultado de la baja del proceso Connrect Direct
+  debug:
+    msg:
+       - "ConnectDirect ........{{ statuscd.stdout }}"
+  when: statuscd.stdout == "INACTIVO"
+
+- name: Resultado de la baja del proceso Connrect Direct
+  fail:
+    msg:
+       - "ConnectDirect ........{{ statuscd.stdout }}"
+       - "No se pudo INACTIVAR de forma correcta"
+       - "Escalar con el área de InfraLinux-Unix"
+  when: statuscd.stdout == "INACTIVACION FALLIDA"

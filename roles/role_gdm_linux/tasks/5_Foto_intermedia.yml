@@ -1,0 +1,52 @@
+---
+- name: Tareas por bloques - Validacion formato CRQ o ICR
+  block:
+    - name: Validando Formato de Cambio o Incidente
+      assert:
+        that:
+          - idcrqincreq | string | regex_search('(CRQ|INC|REQ)[0-9]{12}')
+        fail_msg: "El CRQ, INC o REQ no cumplen con la condiciones del formato"
+        success_msg: "El CRQ, INC o REQ cumplen con las condiciones del formato"
+      run_once: true
+      delegate_to: localhost
+
+- name: Tareas por bloques - Validar Status SSO, PPs y APP's intermedia al IPL OS Linux
+  block:
+    - name: Assing permissions r+x to ansible directory
+      become: true
+      file:
+        path: "{{ gdmfsasb }}"
+        state: directory
+        owner: bvmuxat2
+        group: automate
+        mode: "0755"
+      ignore_errors: true
+
+    - file:
+        path: "{{ gdmfsasb }}report_pp_aps.sh"
+        state: absent
+
+    - name: Copiando script foto intermedia IPL OS Linux
+      become: yes
+      copy:
+        src: files/gdm/inter/report_pp_aps.sh
+        dest: "{{ gdmfsasb }}"
+        mode: 0750
+        owner: bvmuxat2
+        group: automate
+
+    - name: Ejecutar script foto intermedia IPL OS Linux
+      become: true
+      shell: "export PATH=$PATH:/sbin:/usr/sbin && {{ gdmfsasb }}report_pp_aps.sh"
+      register: result_accion
+      environment:
+        PATH: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:{{ ansible_env.PATH }}"
+
+    - file:
+        path: "{{ gdmfsasb }}report_pp_aps.sh"
+        state: absent
+      become: true
+
+    - shell: >
+        mv {{ gdmfsasb }}foto_sso_pp_aps_intermedia.txt
+        {{ gdmfsasb }}{{ idcrqincreq }}_{{ inventory_hostname.split('.')[0] }}_{{ hostvars[inventory_hostname].ipaddress }}_foto_sso_pp_aps_intermedia.txt

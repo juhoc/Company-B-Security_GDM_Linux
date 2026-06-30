@@ -1,0 +1,52 @@
+---
+- name: Tareas por bloques - Validacion formato CRQ o ICR
+  block:
+    - name: Validando Formato de Cambio o Incidente
+      assert:
+        that:
+          - idcrqincreq | string | regex_search('(CRQ|INC|REQ)[0-9]{12}')
+        fail_msg: "El CRQ, INC o REQ no cumplen con la condiciones del formato"
+        success_msg: "El CRQ, INC o REQ cumplen con las condiciones del formato"
+      run_once: true
+      delegate_to: localhost
+#---
+- name: Ejecucion de IPL Total por Tiempo o por Conexion
+  block:
+    - name: Ejecucion IPL Total por Conexion OS Windows
+      become: true
+      reboot:
+        reboot_timeout: 3600
+      register: reboot_result
+      ignore_errors: true
+
+    - name: Regreso del OS Windows despues del IPL
+      debug:
+        msg: "El equipo {{ inventory_hostname }} ha regresado después del IPL"
+      when: reboot_result is not failed
+
+- name: IPL OS Windows
+  block:
+    - name: Validacion del Tiempo del OS Windows despues del IPL
+      shell: |
+        uptime | awk -F'(up|,)' '{
+        split($2, time, ":"); 
+        hours = time[1] + 0; 
+        minutes = time[2] + 0; 
+        printf "up %d hours, %d minutes\n", hours, minutes
+        }'
+      register: tiempo_activo
+
+    - set_fact:
+        nombre_servidor: "{{ hostvars[inventory_hostname].ansible_hostname }}"
+        direccion_ip: "{{ hostvars[inventory_hostname].ipaddress }}"
+        tiempo_de_reinicio: "{{ tiempo_activo.stdout | replace('\r\n', '') | replace('\n\r', '') | trim }}"
+
+    - shell: |
+        echo "{{ nombre_servidor }},{{ direccion_ip }},{{ tiempo_de_reinicio | replace('\r', '') | replace('\n', '') | trim }}"
+      register: reporte_post_tiempo        
+
+    - name: Reporte del tiempo de ejeccion del OS Windows previo al IPL
+      debug: 
+        msg: "{{ ansible_play_hosts | map('extract', hostvars, 'reporte_post_tiempo') | map(attribute='stdout' | replace('\r', '') | replace('\n', '')) | list }}"
+      run_once: true
+#Autor Julio Hoyos

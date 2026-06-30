@@ -1,0 +1,49 @@
+#---variables de correo
+smtp: 150.100.207.52
+smtpport: 25
+mailfrom: itoperationintegration.mx@bbva.com
+
+#---variables de sistema operativo
+gdmfsasb: /var/opt/ansible/
+asbgdm: /var/opt/ansible/lnxgdm
+
+#---
+tower_base_url: "http://tower-service.tower.svc.cluster.local"
+url_so: "http://tower-service.tower.svc.cluster.local/api/v2/job_templates/133666/launch/"
+tower_organization: "bvm"
+tower_inventory: "bvm_inventory"
+tower_token: "6gvxVkRl0qy5lIHPzXuWxNsZZgJ4gm"
+retries: 100
+delay: 2
+#---
+accionjtp1:
+  idcrqincreq: "{{ idcrqincreq | trim }}"
+  tarea: BlackOut_PatrolAgentes
+  demora: 2
+  reintentos: 100
+
+accionjtp2:
+  idcrqincreq: "{{ idcrqincreq | trim }}"
+  tarea: BlackIn_PatrolAgentes
+  demora: 2
+  reintentos: 100
+
+accionjtp3:
+  idcrqincreq: "{{ idcrqincreq | trim }}"
+  equipos_lista: "{{ equipos_lista }}"
+  demora: 2
+  reintentos: 9999
+
+accionjtp4:
+  operacion_politica_survey: "deactivate"
+  tipo_detencion_survey: "hosts"
+  nombre_servidor_survey: "ambos"
+  demora: 2
+  reintentos: 500
+
+accionjt5:
+  operacion_politica_survey: "activate"
+  tipo_detencion_survey: "hosts"
+  nombre_servidor_survey: "ambos"
+  demora: 2
+  reintentos: 500

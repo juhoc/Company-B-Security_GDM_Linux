@@ -1,0 +1,89 @@
+---
+- name: Tareas por bloques - Validacion formato CRQ o ICR
+  block:
+    - name: Validando Formato de Cambio o Incidente
+      assert:
+        that:
+          - idcrqincreq | string | regex_search('(CRQ|INC|REQ)[0-9]{12}')
+        fail_msg: "El CRQ, INC o REQ no cumplen con la condiciones del formato"
+        success_msg: "El CRQ, INC o REQ cumplen con las condiciones del formato"
+      run_once: true
+      delegate_to: localhost
+
+- name: Ejecucion de IPL Total con evidencias previas y posteriores de reinicio, tiempo activo de OS Linux
+  block:
+    - name: Se incluye la tarea de poner en Blackuot los equipos previo al IPL
+      include_tasks: 1_BlackOut_PatrolAgentes.yml
+
+    - name: Valida si existe Foto previa IPL Linux
+      stat:
+        path: "{{ gdmfsasb }}{{ idcrqincreq }}_{{ inventory_hostname.split('.')[0] }}_{{ hostvars[inventory_hostname].ipaddress }}_foto_sso_pp_aps_previa.txt"
+      register: valfotoprev
+
+    - name: Incluye las tareas de obtener Fotos previas antes del IPL Linux
+      include_tasks: 3_Foto_previa_IPL.yml
+      when: not valfotoprev.stat.exists
+
+    - name: Incluye las tareas de obtener Fotos previas/intermedias, Bajas de PP's y AP's antes del IPL Linux
+      include_tasks: "{{ item }}"
+      loop:
+        - 4_Baja_Programas_Producto_Aplicaciones.yml
+        - 5_Foto_intermedia.yml
+
+    - name: Ejecucion IPL Total por Conexion OS Linux
+      become: true
+      reboot:
+        reboot_timeout: 3600
+      register: reboot_result
+      ignore_errors: true
+
+    - name: Regreso del OS Linux despues del IPL
+      debug:
+        msg: "El equipo {{ inventory_hostname.split('.')[0] }} ha regresado después del IPL"
+      when: reboot_result is not failed
+
+    - name: Ejecucion de IPL Total con evidencias previas y posteriores de reinicio, tiempo activo de OS Linux
+      shell: |
+        uptime | awk -F'(up|,)' '{
+        split($2, time, ":");
+        hours = time[1] + 0;
+        minutes = time[2] + 0;
+        printf "up %d hours, %d minutes\n", hours, minutes
+        }'
+      register: tiempo_activo
+
+    - name: Valida si existe Foto posterior IPL Linux
+      stat:
+        path: "{{ gdmfsasb }}{{ idcrqincreq }}_{{ inventory_hostname.split('.')[0] }}_{{ hostvars[inventory_hostname].ipaddress }}_foto_sso_pp_aps_posterior.txt"
+      register: valfotopost
+
+    - name: Incluye las tareas Alta de PP's y AP's despues del IPL Linux
+      include_tasks: 7_Alta_Programas_Producto_Aplicaciones.yml
+      ignore_errors: true
+
+    - name: Incluye la tarea de obtener Fotos posterior, despues del IPL Linux
+      include_tasks: 8_Foto_posterior_IPL.yml
+      when: not valfotopost.stat.exists
+
+    - name: Se incluye la tarea de poner en Blackin los equipos posterior al IPL Linux
+      include_tasks: 12_BlackIn_PatrolAgentes.yml
+
+- name: Colectar informacion porterior al IPL OS Linux
+  block:
+    - set_fact:
+        nombre_servidor: "{{ hostvars[inventory_hostname].ansible_hostname }}"
+        direccion_ip: "{{ hostvars[inventory_hostname].ipaddress }}"
+        tiempo_de_reinicio: "{{ tiempo_activo.stdout | replace('\r\n', '') | replace('\n\r', '') | trim }}"
+
+    - shell: |
+        echo "{{ nombre_servidor }},{{ direccion_ip }},{{ tiempo_de_reinicio | replace('\r', '') | replace('\n', '') | trim }}"
+      register: reporte_pre_post_total
+
+- name: Colectar informacion porterior al IPL OS Linux
+  block:
+    - name: Reporte - Hostname, IPs, Uptime posterior IPL
+      debug:
+        msg: "{{ ansible_play_hosts | map('extract', hostvars, 'reporte_pre_post_total') | map(attribute='stdout' | replace('\r', '') | replace('\n', '')) | list }}"
+      run_once: true
+  delegate_to: localhost
+#Autor Julio Hoyos

@@ -1,0 +1,39 @@
+---
+- name: Ejecutando tarea GDM Linux
+  include_tasks: "{{ tarea }}.yml"
+
+
+#---
+##------------------> START INSTALL PATCH <------------------#
+#
+#- name: Ejecución de Instalación de parches
+#  block:
+#   - name: Cargando Playbook GDM - Instalación de Parches
+#     include_tasks: gdm_parches_rhel.yml
+#     when: ansible_facts['distribution'] == "RedHat"
+#     
+#   - name: Playbook No disponible
+#     include_tasks: gdm_parches_na.yml
+#     when: ansible_facts['distribution'] != "RedHat"
+#      
+#  when: 
+#    - action == "Parches"
+#  
+##------------------> END INSTALL PATCH <------------------#
+#
+##------------------>START GDM IPL<------------------#
+#
+#- name: Ejecución de IPL
+#  block:
+#   - name: Cargando Playbook GDM - IPL a sistemas Linux
+#     include_tasks: gdm_ipl_linux.yml
+#     when: ansible_facts['system'] == "Linux"
+#
+#   - name: Playbook No disponible
+#     include_tasks: gdm_ipl_na.yml
+#     when: ansible_facts['system'] != "Linux"
+#      
+#  when: 
+#    - action == "IPL"
+#  
+##------------------>END GDM IPL<------------------#

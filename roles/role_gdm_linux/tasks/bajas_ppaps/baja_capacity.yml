@@ -1,0 +1,33 @@
+- name: Baja proceso CapacityAgent
+  become: yes
+  become_user: patrol
+  become_method: su
+  become_exe: sudo su -
+  shell: |
+      /usr/adm/best1_default/bgs/scripts/best1agent_stop -b /usr/adm/best1_default
+      /etc/bgs/SD/bgssd.exe -d /etc/bgs/SD -k
+      /usr/adm/best1_default/bgs/bin/MrStat -b /usr/adm/best1_default -k
+      sleep 10
+  ignore_errors: true
+
+- name: Validar proceso CapacityAgent
+  shell: |
+      if [ $(ps -eo args | grep -wi "bgs\w*" | grep -v grep | wc -l) -eq 0 ]
+      then
+      echo INACTIVO
+      fi
+  register: statusca
+  
+- name: Resultado de la baja del proceso CapacityAgent
+  debug:
+    msg:
+       - "CapacityAgent ........{{ statusca.stdout }}"
+  when: statusca.stdout == "INACTIVO"
+
+- name: Resultado de la baja del proceso CapacityAgent
+  fail:
+    msg:
+       - "CapacityAgent ........{{ statusca.stdout }}"
+       - "No se pudo INACTIVAR de forma correcta"
+       - "Escalar con el área de Monitoreo"
+  when: statusca.stdout == "INACTIVACION_FALLIDA"  

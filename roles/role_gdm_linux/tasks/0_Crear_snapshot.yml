@@ -1,0 +1,64 @@
+---
+- name: Tareas por bloques - Validacion formato CRQ o ICR
+  block:
+    - name: Validando Formato de Cambio o Incidente
+      assert:
+        that:
+          - idcrqincreq | string | regex_search('(CRQ|INC|REQ)[0-9]{12}')
+        fail_msg: "El CRQ, INC o REQ no cumplen con la condiciones del formato"
+        success_msg: "El CRQ, INC o REQ cumplen con las condiciones del formato"
+      run_once: true
+      delegate_to: localhost
+
+- name: Crear snapshot previo al IPL
+  block:
+    - name: Construir lista de equipos en formato hostname:IP
+      set_fact:
+        equipos_lista: "{{ ansible_play_hosts | map('extract', hostvars) | map(attribute='inventory_hostname') | map('regex_replace', '\\..*$', '') | zip(ansible_play_hosts | map('extract', hostvars) | map(attribute='ipaddress')) | map('join', ':') | join(', ') }}"
+      run_once: true
+      delegate_to: localhost
+
+    - name: Mostrar lista de equipos a procesar
+      debug:
+        msg: "Lista de equipos para snapshot: {{ equipos_lista }}"
+      run_once: true
+      delegate_to: localhost
+
+    - name: Ejecutar plantilla Crear Snapshot
+      uri:
+        url: "{{ tower_base_url }}/api/v2/job_templates/147292/launch/"
+        validate_certs: false
+        force_basic_auth: true
+        status_code: [200, 201, 204, 400]
+        method: POST
+        headers:
+          Authorization: "Bearer {{ tower_token }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          extra_vars:
+            idcrqincreq: "{{ accionjtp3.idcrqincreq | trim }}"
+            equipos_lista: "{{ accionjtp3.equipos_lista }}"
+      register: lanzar_snapshot
+      run_once: true
+      delegate_to: localhost
+
+    - name: Run VM Snapshot Monitoring
+      include_tasks: check_snapshot.yml
+
+    - name: Mostrar resultado del lanzamiento
+      debug:
+        msg:
+          - "Job de Snapshot lanzado exitosamente"
+          - "Job ID: {{ lanzar_snapshot.json.id | default('N/A') }}"
+          - "URL: {{ tower_base_url }}/#/jobs/playbook/{{ lanzar_snapshot.json.id | default('') }}"
+      run_once: true
+      delegate_to: localhost
+      when: lanzar_snapshot.status in [200, 201]
+
+    - name: Error al lanzar el job de Snapshot
+      fail:
+        msg: "No se pudo lanzar el job de Snapshot. Status: {{ lanzar_snapshot.status }}"
+      when: lanzar_snapshot.status not in [200, 201]
+      run_once: true
+      delegate_to: localhost

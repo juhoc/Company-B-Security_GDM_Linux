@@ -1,0 +1,39 @@
+- name: Alta proceso Dimension
+  become: yes
+  shell: |
+        /opt/dimensions/[1-9][1-9].[1-9]/cm/prog/dmstartup 2>/dev/null
+        sleep 15
+        /opt/dimensions/[1-9][1-9].[1-9]/cm/prog/dmstartup 2>/dev/null
+        sleep 15
+  ignore_errors: true
+
+- name: Validacion procesos Dimension      
+  shell: |
+      if [ $(ps -eo args | grep -v grep | grep "dimension" | wc -l) -eq 3 ]
+      then
+      echo ACTIVO
+      elif [ $(ps -eo args | grep -v grep | grep "dimension" | wc -l) -eq 0 ]
+      then
+      echo INACTIVO
+      elif [ $(ps -eo args | grep -v grep | grep "dimension" | wc -l) -eq 1 ]
+      then
+      echo REINICIO_FALLIDO
+      elif [ $(ps -eo args | grep -v grep | grep "dimension" | wc -l) -eq 2 ]
+      then
+      echo REINICIO_FALLIDO
+      fi
+  register: statusdm
+  
+- name: Resultado del reincio del proceso Dimension
+  debug:
+    msg:
+       - "Dimension ........{{ statusdm.stdout }}"
+  when: statusdm.stdout == "ACTIVO" or statusdm.stdout == "INACTIVO"
+  
+- name: Resultado del reinicio del proceso Dimension
+  fail:
+    msg:
+       - "Dimensions ........{{ statusdm.stdout }}"
+       - "No todos los procesos de Dimension estan ACTIVOS"
+       - "Escalar con el área de gestion de Dimensions"
+  when: statusdm.stdout == "REINICIO_FALLIDO"
