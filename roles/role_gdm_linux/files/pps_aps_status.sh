@@ -1,35 +1,46 @@
 #!/bin/bash
 #--- Inicio validacion PPS
-# Variables de validadcion
+# Variables de validacion
 #---Patrol
 PAITL=/patrol/Patrol3/scripts.d/S50PatrolAgent.sh
-PAAG=$(ps -eo comm | grep -wi patrolagent | grep -v grep | wc -l)
+PAAG=$(pgrep -ic "^patrolagent$")
 #---Capacity
-CAITL="$(ls 2>/dev/null -1R /performance | grep bgs/bin:$ | tr -d ':')/bgsagent"
-CAAG=$(ps -eo comm | egrep -wi "bgssd|bgsagent|bgscollect" | grep -v grep | wc -l)
+CAITL=$(find /performance -maxdepth 4 -name bgsagent -print -quit 2>/dev/null)
+CAAG=$(pgrep -ic -f "bgssd|bgsagent|bgscollect")
 #---ControlM
-CTMITL="$(ls 2>/dev/null -1R /controlm | grep ctm/scripts:$ | tr -d ':')/start-ag"
-CTMAG=$(ps -eo comm | grep -wi ctma[a-z] | awk -F ' ' '{print $1}' | wc -l)
+CTMITL=$(find /controlm -maxdepth 4 -name start-ag -print -quit 2>/dev/null)
+CTMAG=$(pgrep -ic -f "^ctma")
 #---Dimensions
-DMITL="$(ls 2>/dev/null -1R /opt/dimensions | grep cm/prog:$ | tr -d ':')/dmstartup"
-DMAG=$(ps -eo comm | grep -wi dimensions | grep -v grep | wc -l)
+DMITL=$(find /opt/dimensions -maxdepth 5 -name dmstartup -print -quit 2>/dev/null)
+DMAG=$(pgrep -ic "^dimensions$")
 #---SentinelOne
-S1ITL="$(ls 2>/dev/null -1R /opt/sentinelone | grep bin:$ | tr -d ':')/sentinelctl"
-S1AG=$(ps -eo comm | grep -wi s1-[a-z] | grep -v grep | wc -l)
+S1ITL=$(find /opt/sentinelone -maxdepth 4 -name sentinelctl -print -quit 2>/dev/null)
+S1AG=$(pgrep -ic -f "^s1-")
 #---ConnectDirect
-CDITL="$(ls 2>/dev/null -1R /NDM36 2>/dev/null | grep depura:$ | tr -d ':')/startcd.sh"
-CDAG=$(ps -eo comm | egrep -wi "cdpmgr|cdstatm" | grep -v grep | wc -l)
-#---TetSensor
-#TTITL=
-#TTAG=
-#---TetEnforce
-#TEITL=
-#TEAG=
+CDITL=$(find /NDM36 -maxdepth 4 -name startcd.sh -print -quit 2>/dev/null)
+CDAG=$(pgrep -ic -f "^cdpmgr|^cdstatm")
+
 #FileSystems
-FSNM=$(df -HT | egrep -v "Filesystem|#|tmpfs|boot" | sed 's/ \+/,/g;s/\/dev\///g;s/mapper\///g;s/-/,/g' | tr -d "\t" | sort)
-FSC=$(df -HT | egrep -v "Filesystem|#|tmpfs|boot" | wc -l)
+FSNM=$(df -HT | grep -Ev "Filesystem|#|tmpfs|boot" | sed 's/ \+/,/g;s/\/dev\///g;s/mapper\///g;s/-/,/g' | tr -d "\t" | sort)
+FSC=$(df -HT | grep -Ev "Filesystem|#|tmpfs|boot" | wc -l)
 NETSTAT=$(netstat -rn | grep -vi kernel | sed 's/ \+/,/g;s/\/dev\///g;s/mapper\///g;s/-/,/g')
-UP=$(uptime 2>/dev/null | cut -d' ' -f3-5 | sed 's/up/Activo:/g;s/day,/Dia/g')
+
+# Uptime robusto e independiente de locale
+if [ -f /proc/uptime ]; then
+    read -r up_seconds _ < /proc/uptime
+    up_seconds=${up_seconds%.*}
+    days=$((up_seconds / 86400))
+    hours=$(( (up_seconds % 86400) / 3600 ))
+    mins=$(( (up_seconds % 3600) / 60 ))
+    if [ "$days" -gt 0 ]; then
+        UP="Activo: $days Dia(s), $hours hora(s), $mins minuto(s)"
+    else
+        UP="Activo: $hours hora(s), $mins minuto(s)"
+    fi
+else
+    UP="Activo: $(uptime 2>/dev/null | cut -d' ' -f3-5)"
+fi
+
 TIME=$(date +'%a-%b-%e %H:%M')
 
 echo "###########################################"
@@ -43,7 +54,7 @@ echo "Numero de Filesystems: $FSC"
 echo "-------------------------------------------"
 echo "$NETSTAT"
 echo "-------------------------------------------"
-echo $UP
+echo "$UP"
 echo "-------------------------------------------"
 echo "Fecha: $TIME"
 echo " "
@@ -59,44 +70,44 @@ echo "-------------------------------------------"
 
 echo "Inicia validacion PPs: $(date +'%m/%d/%Y %H:%M:%S')"
 echo "-------------------------------------------"
-if [ -f "$PAITL" ] && [ $PAAG -eq 1 ]; then
+if [ -f "$PAITL" ] && [ "$PAAG" -ge 1 ]; then
 	echo "PatrolAgent ------ ACTIVO"
-elif [ -f "$PAITL" ] && [ $PAAG -eq 0 ]; then
+elif [ -f "$PAITL" ] && [ "$PAAG" -eq 0 ]; then
 	echo "PatrolAgent ------ INACTIVO"
 else
 	echo "PatrolAgent ------ NO SE DETECTA INSTALADO"
 fi
-if [ -f "$CAITL" ] && [ $CAAG -eq 3 ]; then
+if [ -f "$CAITL" ] && [ "$CAAG" -ge 1 ]; then
 	echo "CapacityAgent ---- ACTIVO"
-elif [ -f "$CAITL" ] && [ $CAAG -eq 0 ]; then
+elif [ -f "$CAITL" ] && [ "$CAAG" -eq 0 ]; then
 	echo "CapacityAgent ---- INACTIVO"
 else
 	echo "CapacityAgent ---- NO SE DETECTA INSTALADO"
 fi
-if [ -f "$CTMITL" ] && [ $CTMAG -eq 3 ]; then
+if [ -f "$CTMITL" ] && [ "$CTMAG" -ge 1 ]; then
 	echo "Control-MAgent --- ACTIVO"
-elif [ -f "$CTMITL" ] && [ $CTMAG -eq 0 ]; then
+elif [ -f "$CTMITL" ] && [ "$CTMAG" -eq 0 ]; then
 	echo "Control-MAgent --- INACTIVO"
 else
 	echo "Control-MAgent --- NO SE DETECTA INSTALADO"
 fi
-if [ -f "$DMITL" ] && [ $DMAG -eq 3 ]; then
+if [ -f "$DMITL" ] && [ "$DMAG" -ge 1 ]; then
 	echo "Dimensions ------- ACTIVO"
-elif [ -f "$DMITL" ] && [ $DMAG -eq 0 ]; then
+elif [ -f "$DMITL" ] && [ "$DMAG" -eq 0 ]; then
 	echo "Dimensions ------- INACTIVO"
 else
 	echo "Dimensions ------- NO SE DETECTA INSTALADO"
 fi
-if [ -f "$CDITL" ] && [ $CDAG -eq 2 ]; then
+if [ -f "$CDITL" ] && [ "$CDAG" -ge 1 ]; then
 	echo "ConnectDirect ---- ACTIVO"
-elif [ -f "$CDITL" ] && [ $CDAG -eq 0 ]; then
+elif [ -f "$CDITL" ] && [ "$CDAG" -eq 0 ]; then
 	echo "ConnectDirect ---- INACTIVO"
 else
 	echo "ConnectDirect ---- NO SE DETECTA INSTALADO"
 fi
-if [ -f "$S1ITL" ] && [ $S1AG -eq 5 ]; then
+if [ -f "$S1ITL" ] && [ "$S1AG" -ge 1 ]; then
 	echo "SentinelOneAgent - ACTIVO"
-elif [ -f "$S1ITL" ] && [ $S1AG -eq 0 ]; then
+elif [ -f "$S1ITL" ] && [ "$S1AG" -eq 0 ]; then
 	echo "SentinelOneAgent - INACTIVO"
 else
 	echo "SentinelOneAgent - NO SE DETECTA INSTALADO"
@@ -104,21 +115,6 @@ fi
 echo "###########################################"
 echo " "
 echo "Aplicaciones"
-
-
-
-
-
-
 echo "-------------------------------------------"
 echo "Finaliza validacion: $(date +%m/%d/%Y-%H:%M:%S)"
 echo "-------------------------------------------"
-
-
-#ps -eo args | grep WebSphere80  | awk '/com.ibm.ws.runtime.WsServer/{print $NF}' | sort | uniq | egrep -v "dmgr|nodeagent"
-#ps -eo args | grep WebSphere80  | awk '/com.ibm.ws.runtime.WsServer/{print $NF}' | sort | uniq | egrep "dmgr|nodeagent" | grep -v ^qzxy
-#ps -eo args | grep webseal | grep -v grep | tr "-" "\n" | grep ".conf"$ | cut -d "." -f1 | sort
-#ps -eo args | egrep "pdmgrd|pdacld" | grep -v grep | awk '{print $1}' | cut -d "/" -f5
-#ps -eo args | grep -v grep | grep -i HTTP | tr "/" "\n" | egrep -i "^HTTP|httpd-" | awk '{print $1}' | cut -d "." -f1 | sort | uniq
-#dspmq
-#ps -eo args | grep -v admin | sed 's/.conf//g' | grep -iE "pd\\s+\-f" | cut -d' ' -f3 | sort | uniq | cut -d'/' -f3

@@ -13,37 +13,37 @@
 - name: altas de Programas Producto antes de IPL de OS Linux
   block:
     - name: alta de Programas Producto
-      shell: if [ -f {{ gdmfsasb }}patrol.asb ]; then echo alta; fi
+      shell: if grep -q "ACTIVO" {{ gdmfsasb }}patrol.asb 2>/dev/null; then echo alta; fi
       register: alta_patrol
 
     - include_tasks: altas_ppaps/alta_patrol.yml
       when: alta_patrol.stdout == "alta"
 
-    - shell: if [ -f {{ gdmfsasb }}capacity.asb ]; then echo alta; fi
+    - shell: if grep -q "ACTIVO" {{ gdmfsasb }}capacity.asb 2>/dev/null; then echo alta; fi
       register: alta_capacity
 
     - include_tasks: altas_ppaps/alta_capacity.yml
       when: alta_capacity.stdout == "alta"
 
-    - shell: if [ -f {{ gdmfsasb }}ctm.asb ]; then echo alta; fi
+    - shell: if grep -q "ACTIVO" {{ gdmfsasb }}ctm.asb 2>/dev/null; then echo alta; fi
       register: alta_controlm
 
     - include_tasks: altas_ppaps/alta_controlm.yml
       when: alta_controlm.stdout == "alta"
 
-    - shell: if [ -f {{ gdmfsasb }}dim.asb ]; then echo alta; fi
+    - shell: if grep -q "ACTIVO" {{ gdmfsasb }}dim.asb 2>/dev/null; then echo alta; fi
       register: alta_dimensions
 
     - include_tasks: altas_ppaps/alta_dimensions.yml
       when: alta_dimensions.stdout == "alta"
 
-    - shell: if [ -f {{ gdmfsasb }}cd.asb ]; then echo alta; fi
+    - shell: if grep -q "ACTIVO" {{ gdmfsasb }}cd.asb 2>/dev/null; then echo alta; fi
       register: alta_connectdirect
 
     - include_tasks: altas_ppaps/alta_connectdirect.yml
       when: alta_connectdirect.stdout == "alta"
 
-#    - shell: if [ -f {{ gdmfsasb }}s1.asb ]; then echo alta; fi
+#    - shell: if grep -q "ACTIVO" {{ gdmfsasb }}s1.asb 2>/dev/null; then echo alta; fi
 #      register: alta_s1
 
 #    - include_tasks: altas_ppaps/alta_sentinelone.yml
@@ -58,7 +58,7 @@
     - shell: |
         for https in $(cat {{ gdmfsasb }}httpserver80s.asb)
         do
-          $https stop
+          $https start
         done
       when: alta_http80s.stdout == "alta"
       ignore_errors: true
@@ -69,18 +69,18 @@
     - shell: |
         for https in $(cat {{ gdmfsasb }}httpserver80d.asb)
         do
-          $https stop
+          $https start
         done
       when: alta_http80d.stdout == "alta"
       ignore_errors: true
 
-    - shell: if [ -f {{ gdmfsasb }}httpserver85d.asb ]; then echo alta; fi
+    - shell: if [ -f {{ gdmfsasb }}httpserver85s.asb ]; then echo alta; fi
       register: alta_http85s
 
     - shell: |
         for https in $(cat {{ gdmfsasb }}httpserver85s.asb)
         do
-          $https stop
+          $https start
         done
       become: true
       become_user: was60
@@ -95,7 +95,7 @@
     - shell: |
         for https in $(cat {{ gdmfsasb }}httpserver85d.asb)
         do
-          $https stop
+          $https start
         done
       become: true
       become_user: was60
@@ -104,13 +104,13 @@
       when: alta_http85d.stdout == "alta"
       ignore_errors: true
 
-    - shell: if [ -f {{ gdmfsasb }}httpserver90d.asb ]; then echo alta; fi
+    - shell: if [ -f {{ gdmfsasb }}httpserver90s.asb ]; then echo alta; fi
       register: alta_http90s
 
     - shell: |
         for https in $(cat {{ gdmfsasb }}httpserver90s.asb)
         do
-          $https stop
+          $https start
         done
       become: true
       become_user: was60
@@ -125,7 +125,7 @@
     - shell: |
         for https in $(cat {{ gdmfsasb }}httpserver90d.asb)
         do
-          $https stop
+          $https start
         done
       become: true
       become_user: was60

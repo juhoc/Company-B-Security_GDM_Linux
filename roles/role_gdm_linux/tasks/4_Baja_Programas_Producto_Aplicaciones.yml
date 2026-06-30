@@ -13,31 +13,31 @@
 - name: Bajas de Programas Producto antes de IPL de OS Linux
   block:
     - name: Baja de Programas Producto
-      shell: if [ -f {{ gdmfsasb }}patrol.asb ]; then echo baja; fi
+      shell: if grep -q "ACTIVO" {{ gdmfsasb }}patrol.asb 2>/dev/null; then echo baja; fi
       register: baja_patrol
 
     - include_tasks: bajas_ppaps/baja_patrol.yml
       when: baja_patrol.stdout == "baja"
 
-    - shell: if [ -f {{ gdmfsasb }}capacity.asb ]; then echo baja; fi
+    - shell: if grep -q "ACTIVO" {{ gdmfsasb }}capacity.asb 2>/dev/null; then echo baja; fi
       register: baja_capacity
 
     - include_tasks: bajas_ppaps/baja_capacity.yml
       when: baja_capacity.stdout == "baja"
 
-    - shell: if [ -f {{ gdmfsasb }}ctm.asb ]; then echo baja; fi
+    - shell: if grep -q "ACTIVO" {{ gdmfsasb }}ctm.asb 2>/dev/null; then echo baja; fi
       register: baja_controlm
 
     - include_tasks: bajas_ppaps/baja_controlm.yml
       when: baja_controlm.stdout == "baja"
 
-    - shell: if [ -f {{ gdmfsasb }}dim.asb ]; then echo baja; fi
+    - shell: if grep -q "ACTIVO" {{ gdmfsasb }}dim.asb 2>/dev/null; then echo baja; fi
       register: baja_dimensions
 
     - include_tasks: bajas_ppaps/baja_dimensions.yml
       when: baja_dimensions.stdout == "baja"
 
-    - shell: if [ -f {{ gdmfsasb }}cd.asb ]; then echo baja; fi
+    - shell: if grep -q "ACTIVO" {{ gdmfsasb }}cd.asb 2>/dev/null; then echo baja; fi
       register: baja_connectdirect
 
     - include_tasks: bajas_ppaps/baja_connectdirect.yml
@@ -74,7 +74,7 @@
       when: baja_http80d.stdout == "baja"
       ignore_errors: true
 
-    - shell: if [ -f {{ gdmfsasb }}httpserver85d.asb ]; then echo baja; fi
+    - shell: if [ -f {{ gdmfsasb }}httpserver85s.asb ]; then echo baja; fi
       register: baja_http85s
 
     - shell: |
@@ -104,7 +104,7 @@
       when: baja_http85d.stdout == "baja"
       ignore_errors: true
 
-    - shell: if [ -f {{ gdmfsasb }}httpserver90d.asb ]; then echo baja; fi
+    - shell: if [ -f {{ gdmfsasb }}httpserver90s.asb ]; then echo baja; fi
       register: baja_http90s
 
     - shell: |
