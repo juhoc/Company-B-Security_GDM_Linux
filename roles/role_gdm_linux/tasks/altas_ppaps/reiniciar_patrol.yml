@@ -10,10 +10,10 @@
 
 - name: Validar proceso PatrolAgent
   shell: |
-      if [ $(pa -eo args | grep -v grep | grep -w PatrolAgent | wc -l) -eq 1 ]
+      if [ $(ps -eo args | grep -v grep | grep -w PatrolAgent | wc -l) -eq 1 ]
       then
       echo ACTIVO
-      elif [ $(pa -eo args | grep -v grep | grep -w PatrolAgent | wc -l) -eq 0 ]
+      elif [ $(ps -eo args | grep -v grep | grep -w PatrolAgent | wc -l) -eq 0 ]
       then
       echo REINICIO_FALLIDO
       fi      
@@ -22,13 +22,13 @@
 - name: Resultado del reinicio del proceso TS PATROL
   debug:
     msg:
-       - "PatrolAgent ........{{ statusdm.stdout }}"
+       - "PatrolAgent ........{{ statuspa.stdout }}"
   when: statuspa.stdout == "ACTIVO"
 
 - name: Resultado del reinicio del proceso TS PATROL
   fail:
     msg:
-       - "PatrolAgent ........{{ statusdm.stdout }}"
+       - "PatrolAgent ........{{ statuspa.stdout }}"
        - "El procesos no pudo ser REINICIDO correctamente"
        - "Favor de contactar a RTMonitoring"
-  when: statuspa.stdout == "INACTIVO"
+  when: statuspa.stdout == "REINICIO_FALLIDO"

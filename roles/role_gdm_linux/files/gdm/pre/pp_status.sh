@@ -1,25 +1,25 @@
 #!/bin/bash
 
 #---PA INICIO
-PAFSC=$(df -h | awk '{print $6}' | grep \w*patrol$ | wc -l)
-PAFSN=$(df -h | awk '{print $6}' | grep \w*patrol$)
+PAFSN=$(df -h | awk '{print $6}' | grep -E "patrol$" | head -n 1)
+PAFSC=$(echo "$PAFSN" | grep -c .)
 
-if [ -d $PAFSN ]; then
-    PAITLN="$(ls 2>/dev/null -1R $PAFSN | grep scripts.d:$ | tr ":" "/")S50PatrolAgent.sh"
-    PAITLC=$(ls 2>/dev/null $PAITLN | wc -l)
+if [ -n "$PAFSN" ] && [ -d "$PAFSN" ]; then
+    PAITLN=$(find "$PAFSN" -maxdepth 4 -path "*/scripts.d/S50PatrolAgent.sh" 2>/dev/null | head -n 1)
+    PAITLC=$(echo "$PAITLN" | grep -c .)
 else
     PAITLN=""
-    PAITLC="$(ls 2>/dev/null $PAITLN | wc -l)"
+    PAITLC=0
 fi
-PAAG=$(ps -eo args | grep -wi patrolagent | grep -v grep | wc -l)
+PAAG=$(pgrep -ic "^patrolagent$")
 
-if [ $PAFSC -gt 0 ]; then
-    if [ $PAAG -eq 1 ] && [ $PAITLC -eq 1 ]; then
+if [ "$PAFSC" -gt 0 ]; then
+    if [ "$PAAG" -eq 1 ] && [ "$PAITLC" -eq 1 ]; then
         echo "ACTIVO" > /var/opt/ansible/patrol.asb
     fi
 else
     if [ -d /patrol ]; then
-        if [ $PAAG -eq 1 ]; then
+        if [ "$PAAG" -eq 1 ]; then
             echo "ACTIVO" > /var/opt/ansible/patrol.asb
         fi
     fi
@@ -27,25 +27,25 @@ fi
 #---PA FIN
 
 #---CA INICIO
-CAFSC=$(df -h | awk '{print $6}' | grep \w*performance$ | wc -l)
-CAFSN=$(df -h | awk '{print $6}' | grep \w*performance$)
+CAFSN=$(df -h | awk '{print $6}' | grep -E "performance$" | head -n 1)
+CAFSC=$(echo "$CAFSN" | grep -c .)
 
-if [ -d $CAFSN ]; then
-    CAITLN="$(ls 2>/dev/null -1R $CAFSN | grep bgs/bin:$ | tr ":" "/")bgsagent"
-    CAITLC=$(ls 2>/dev/null  $CAITLN | wc -l)
+if [ -n "$CAFSN" ] && [ -d "$CAFSN" ]; then
+    CAITLN=$(find "$CAFSN" -maxdepth 4 -name bgsagent 2>/dev/null | head -n 1)
+    CAITLC=$(echo "$CAITLN" | grep -c .)
 else
     CAITLN=""
-    CAITLC="$(ls 2>/dev/null  $CAITLN | wc -l)"
+    CAITLC=0
 fi
-CAAG=$(ps -eo args | grep -wi "bgs\w*" | grep -v grep | wc -l)
+CAAG=$(pgrep -ic -f "bgssd|bgsagent|bgscollect")
 
-if [ $CAFSC -gt 0 ]; then
-    if [ $CAAG -ge 3 ] && [ $CAITLC -eq 1 ]; then
+if [ "$CAFSC" -gt 0 ]; then
+    if [ "$CAAG" -ge 3 ] && [ "$CAITLC" -eq 1 ]; then
         echo "ACTIVO" > /var/opt/ansible/capacity.asb
     fi
 else
     if [ -d /performance ]; then
-        if [ $CAAG -ge 3 ]; then
+        if [ "$CAAG" -ge 3 ]; then
             echo "ACTIVO" > /var/opt/ansible/capacity.asb
         fi
     fi
@@ -53,104 +53,105 @@ fi
 #---CA FIN
 
 #---CTM INICIO
-CTMFSC=$(df -h | awk '{print $6}' | grep \w*controlm | wc -l)
-CTMFSN=$(df -h | awk '{print $6}' | grep \w*controlm)
+CTMFSN=$(df -h | awk '{print $6}' | grep -E "controlm$" | head -n 1)
+CTMFSC=$(echo "$CTMFSN" | grep -c .)
 
-if [ -d $CTMFSN ]; then
-    CTMITLN="$(ls 2>/dev/null -1R $CTMFSN | grep ctm/scripts:$ | tr ":" "/")start-ag"
-    CTMITLC=$(ls 2>/dev/null $CTMITLN | wc -l)
+if [ -n "$CTMFSN" ] && [ -d "$CTMFSN" ]; then
+    CTMITLN=$(find "$CTMFSN" -maxdepth 4 -path "*/ctm/scripts/start-ag" 2>/dev/null | head -n 1)
+    CTMITLC=$(echo "$CTMITLN" | grep -c .)
 else
     CTMITLN=""
-    CTMITLC=$(ls 2>/dev/null  $CTMITLN | wc -l)
+    CTMITLC=0
 fi
-CTMAG=$(ps -eo args | grep ctma\w* | grep -v grep | wc -l)
+CTMAG=$(pgrep -ic -f "^ctma")
 
-if [ $CTMFSC -gt 0 ]; then
-    if [ $CTMAG -ge 3 ] && [ $CTMITLC -eq 1 ]; then
+if [ "$CTMFSC" -gt 0 ]; then
+    if [ "$CTMAG" -ge 3 ] && [ "$CTMITLC" -eq 1 ]; then
         echo "ACTIVO" > /var/opt/ansible/ctm.asb
     fi
 else
     if [ -d /controlm/ag700 ]; then
-        if [ $CTMAG -ge 3 ]; then
+        if [ "$CTMAG" -ge 3 ]; then
             echo "ACTIVO" > /var/opt/ansible/ctm.asb
         fi
     fi
 fi
 #---CTM FIN
 
-#---DIM FIN
-DMFSC=$(df -h | awk '{print $6}' | grep \w*dimensions | wc -l)
-DMFSN=$(df -h | awk '{print $6}' | grep \w*dimensions)
+#---DIM INICIO
+DMFSN=$(df -h | awk '{print $6}' | grep -E "dimensions$" | head -n 1)
+DMFSC=$(echo "$DMFSN" | grep -c .)
 
-if [ -d $DMFSN ]; then
-    DMITLN="$(ls 2>/dev/null -1R $DMFSN | grep cm/prog:$ | tr ":" "/")dmstartup"
-    DMITLC=$(ls 2>/dev/null $DMITLN | wc -l)
-    DMVER=$(ls 2>/dev/null -1R $DMFSN | grep cm/prog:$ | tr ":" "/" | cut -d'/' -f4)
+if [ -n "$DMFSN" ] && [ -d "$DMFSN" ]; then
+    DMITLN=$(find "$DMFSN" -maxdepth 5 -name dmstartup 2>/dev/null | head -n 1)
+    DMITLC=$(echo "$DMITLN" | grep -c .)
+    DMVER=$(echo "$DMITLN" | awk -F'/' '{print $(NF-2)}')
 else
     DMITLN=""
-    DMITLC=$(echo $DMITLN | wc -l)
+    DMITLC=0
+    DMVER=""
 fi
-DMAG=$(ps -eo args | grep dimension\w* | grep -v grep | wc -l)
+DMAG=$(pgrep -ic "^dimensions$")
 
-if [ $DMFSC -gt 0 ]; then
-    if [ $DMAG -ge 3 ] && [ $DMITLC -eq 1 ]; then
-        echo "$DMVER,ACTIVO" > /var/opt/ansible/dim.asb
+if [ "$DMFSC" -gt 0 ]; then
+    if [ "$DMAG" -ge 3 ] && [ "$DMITLC" -eq 1 ]; then
+        echo "${DMVER},ACTIVO" > /var/opt/ansible/dim.asb
     fi
 else
     if [ -d /opt/dimensions ]; then
-        if [ $DMAG -ge 3 ]; then
-            echo "$DMVER,ACTIVO" > /var/opt/ansible/dim.asb
+        if [ "$DMAG" -ge 3 ]; then
+            echo "${DMVER},ACTIVO" > /var/opt/ansible/dim.asb
         fi
     fi
 fi
-#---DIM INICIO
+#---DIM FIN
 
 #---CD INICIO
-CDFSC=$(df -h | awk '{print $6}' | grep \w*NDM36 | wc -l)
-CDFSN=$(df -h | awk '{print $6}' | grep \w*NDM36)
+CDFSN=$(df -h | awk '{print $6}' | grep -E "NDM36$" | head -n 1)
+CDFSC=$(echo "$CDFSN" | grep -c .)
 
-if [ -d $CDFSN ]; then
-    CDITLN="$(ls 2>/dev/null -1R $CDFSN | grep depura:$ | tr ":" "/")startcd.sh"
-    CDITLC=$(ls 2>/dev/null  $CDITLN | wc -l)
+if [ -n "$CDFSN" ] && [ -d "$CDFSN" ]; then
+    CDITLN=$(find "$CDFSN" -maxdepth 4 -name startcd.sh 2>/dev/null | head -n 1)
+    CDITLC=$(echo "$CDITLN" | grep -c .)
 else
     CDITLN=""
-    CDITLC=$(ls 2>/dev/null  $CDITLN | wc -l)
+    CDITLC=0
 fi
-CDAG=$(ps -eo args | egrep -wi "cdpmgr|cdstatm" | grep -v grep | wc -l)
+CDAG=$(pgrep -ic -f "^cdpmgr|^cdstatm")
 
-if [ $CDFSC -gt 0 ]; then
-    if [ $CDAG -ge 2 ] && [ $CDITLC -eq 1 ]; then
+if [ "$CDFSC" -gt 0 ]; then
+    if [ "$CDAG" -ge 2 ] && [ "$CDITLC" -eq 1 ]; then
         echo "ACTIVO" > /var/opt/ansible/cd.asb
     fi
 else
     if [ -d /NDM36 ]; then
-        if [ $CDAG -ge 3 ]; then
+        if [ "$CDAG" -ge 2 ]; then
             echo "ACTIVO" > /var/opt/ansible/cd.asb
         fi
     fi
 fi
-#---CD INICIO
+#---CD FIN
 
 #---S1 INICIO
-S1FSC=$(df -h | awk '{print $6}' | grep \w*sentinelone | wc -l)
-S1FSN=$(df -h | awk '{print $6}' | grep \w*sentinelone)
+S1FSN=$(df -h | awk '{print $6}' | grep -E "sentinelone$" | head -n 1)
+S1FSC=$(echo "$S1FSN" | grep -c .)
 
-if [ -d $S1FSN ]; then
-    S1ITLN="$(ls 2>/dev/null -1R $S1FSN | grep bin:$ | tr ":" "/")sentinelctl"
-    S1ITLC=$(ls 2>/dev/null $S1ITLN | wc -l)
+if [ -n "$S1FSN" ] && [ -d "$S1FSN" ]; then
+    S1ITLN=$(find "$S1FSN" -maxdepth 4 -name sentinelctl 2>/dev/null | head -n 1)
+    S1ITLC=$(echo "$S1ITLN" | grep -c .)
 else
     S1ITLN=""
-    S1ITLC=$(ls ls 2>/dev/null $S1ITLN | wc -l)
+    S1ITLC=0
 fi
-S1AG=$(ps -eo args | grep -wi "s1-\w*" | grep -v grep | wc -l)
+S1AG=$(pgrep -ic -f "^s1-")
 
-if [ $S1FSC -gt 0 ]; then
-    if [ $S1AG -ge 5 ] && [ $S1ITLC -eq 1 ]; then
+if [ "$S1FSC" -gt 0 ]; then
+    if [ "$S1AG" -ge 5 ] && [ "$S1ITLC" -eq 1 ]; then
         echo "ACTIVO" > /var/opt/ansible/s1.asb
     fi
 else
     if [ -d /opt/sentinelone ]; then
-        if [ $S1AG -ge 5 ]; then
+        if [ "$S1AG" -ge 5 ]; then
             echo "ACTIVO" > /var/opt/ansible/s1.asb
         fi
     fi
@@ -159,6 +160,6 @@ fi
 
 for i in patrol.asb capacity.asb ctm.asb dim.asb cd.asb s1.asb
 do
-    chown 2>/dev/null bvmuxat2:automate /var/opt/ansible/$i
-    chmod 2>/dev/null 644 /var/opt/ansible/$i
+    chown bvmuxat2:automate /var/opt/ansible/"$i" 2>/dev/null
+    chmod 644 /var/opt/ansible/"$i" 2>/dev/null
 done

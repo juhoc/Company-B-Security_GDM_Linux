@@ -1,7 +1,7 @@
-- name: Alta proceso Dimension
+- name: Reiniciar proceso Dimension
   become: yes
   shell: |
-        /opt/dimensions/[1-9][1-9].[1-9]/cm/prog/dmstartup 2>/dev/null
+        /opt/dimensions/[1-9][1-9].[1-9]/cm/prog/dmshutdown 2>/dev/null
         sleep 15
         /opt/dimensions/[1-9][1-9].[1-9]/cm/prog/dmstartup 2>/dev/null
         sleep 15

@@ -5,7 +5,7 @@
   become_exe: sudo su -
   shell: |
       /NDM36/depura/stopcd.sh
-      sleep10
+      sleep 10
       /NDM36/depura/startcd.sh
       sleep 10
   ignore_errors: true
@@ -24,13 +24,13 @@
 - name: Resultado del reinicio del proceso Connect Direct
   debug:
     msg:
-       - "ConnectDirect ........{{ statuscm.stdout }}"
+       - "ConnectDirect ........{{ statuscd.stdout }}"
   when: statuscd.stdout == "ACTIVO"
 
 - name: Resultado del reinicio del proceso Connect Direct
   fail:
     msg:
-       - "ConnectDirect ........{{ statuscm.stdout }}"
+       - "ConnectDirect ........{{ statuscd.stdout }}"
        - "No se pudo REACTIVAR de forma correcta"
        - "Escalar con el área de InfraUnix"
   when: statuscd.stdout == "REINICIO_FALLIDO"

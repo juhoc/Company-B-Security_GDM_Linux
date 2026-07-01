@@ -142,7 +142,7 @@
         export PATH=$PATH:/sbin:/usr/sbin
         CLUSTER_R=$(ls -1R {{ wasversion.stdout }} | grep clusters:$ | grep "App\w*/pro\w*/Dmg\w*/con\w*/cel\w*/$(uname -n)" | tr ":" "/")
         CLUSTER_I=$(ls -1 $CLUSTER_R)
-        for cluws insi in $CLUSTER_I
+        for cluwasi in $CLUSTER_I
           do
           ./wsadmin.sh -lang jython -f ./Baja_Cluster.py $cluwasi
           done
@@ -165,7 +165,7 @@
         export PATH=$PATH:/sbin:/usr/sbin
         CLUSTER_R=$(ls -1R {{ wasversion.stdout }} | grep clusters:$ | grep "App\w*/pro\w*/Dmg\w*/con\w*/cel\w*/$(uname -n)" | tr ":" "/")
         CLUSTER_I=$(ls -1 $CLUSTER_R)
-        for cluws insi in $CLUSTER_I
+        for cluwasi in $CLUSTER_I
           do
           ./wsadmin.sh -lang jython -f ./Baja_Cluster.py $cluwasi
           done
@@ -188,7 +188,7 @@
         export PATH=$PATH:/sbin:/usr/sbin
         CLUSTER_R=$(ls -1R {{ wasversion.stdout }} | grep clusters:$ | grep "App\w*/pro\w*/Dmg\w*/con\w*/cel\w*/$(uname -n)" | tr ":" "/")
         CLUSTER_I=$(ls -1 $CLUSTER_R)
-        for cluws insi in $CLUSTER_I
+        for cluwasi in $CLUSTER_I
           do
           ./wsadmin.sh -lang jython -f ./Baja_Cluster.py $cluwasi
           done
@@ -208,7 +208,7 @@
       become_method: su
       become_exe: sudo su -
       shell: |
-        for i ins in$(cat {{ gdmfsasb }}mqm.asb)
+        for i in $(cat {{ gdmfsasb }}mqm.asb)
         do
         $(cat {{ gdmfsasb }}mqmb.asb) $i
         done
@@ -226,7 +226,7 @@
       become_method: su
       become_exe: sudo su -
       shell: |
-        for i ins in$(cat {{ gdmfsasb }}mqm8.asb)
+        for i in $(cat {{ gdmfsasb }}mqm8.asb)
         do
         $(cat {{ gdmfsasb }}mqm8b.asb) $i
         done
@@ -244,7 +244,7 @@
       become_method: su
       become_exe: sudo su -
       shell: |
-        for i ins in$(cat {{ gdmfsasb }}mqm9.asb)
+        for i in $(cat {{ gdmfsasb }}mqm9.asb)
         do
         $(cat {{ gdmfsasb }}mqm9b.asb) $i
         done
@@ -263,7 +263,7 @@
       become_method: su
       become_exe: sudo su -
       shell: |
-        for i ins in$(cat {{ gdmfsasb }}mqm90.asb)
+        for i in $(cat {{ gdmfsasb }}mqm90.asb)
         do
         $(cat {{ gdmfsasb }}mqm90b.asb) $i
         done
@@ -282,7 +282,7 @@
       become_method: su
       become_exe: sudo su -
       shell: |
-        for i ins in$(cat {{ gdmfsasb }}mqm93.asb)
+        for i in $(cat {{ gdmfsasb }}mqm93.asb)
         do
         $(cat {{ gdmfsasb }}mqm93b.asb) $i
         done

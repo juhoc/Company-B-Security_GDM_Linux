@@ -64,7 +64,7 @@ role_gdm_linux/
 │       ├── post/               # Scripts para foto posterior
 │       │   └── report_pp_aps.sh
 │       ├── start/              # Scripts de arranque
-│       │   ├── aps_sart.sh
+│       │   ├── aps_start.sh
 │       │   └── pp_start.sh
 │       └── stop/               # Scripts de parada
 │           ├── aps_stop.sh
@@ -524,3 +524,4 @@ ls -la /var/opt/ansible/*.sh
 | Versión | Fecha | Descripción |
 |---------|-------|-------------|
 | 1.0 | - | Versión inicial |
+| 2.0 | 2026-07-01 | Refactorización completa de scripts de diagnóstico y control (uso de pgrep/find en lugar de pipes de ps/ls/grep, corrección de bucles de Ansible y nombres de variables, eliminación de aps_sart.sh y estandarización de comandos reales en scripts de arranque y parada). |

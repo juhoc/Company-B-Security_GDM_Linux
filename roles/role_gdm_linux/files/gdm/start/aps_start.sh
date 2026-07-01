@@ -1,8 +1,8 @@
 #!/bin/bash
-#--- Inicio baja de APS
+#--- Inicio alta de APS
 
 echo "-------------------------------------------" > /var/opt/ansible/foto_aps_previa.txt
-echo "Baja Aplicaciones" >> /var/opt/ansible/foto_aps_previa.txt
+echo "Alta Aplicaciones" >> /var/opt/ansible/foto_aps_previa.txt
 echo "-------------------------------------------" >> /var/opt/ansible/foto_aps_previa.txt
 
 # HTTP Servers
@@ -15,11 +15,11 @@ for f in /var/opt/ansible/httpserver*.asb; do
     while read -r https; do
         [ -n "$https" ] || continue
         if [ "$is_was60" = true ]; then
-            echo "Deteniendo HTTPServer (was60): $https"
-            su - was60 -c "$https stop"
+            echo "Iniciando HTTPServer (was60): $https"
+            su - was60 -c "$https start"
         else
-            echo "Deteniendo HTTPServer: $https"
-            "$https" stop
+            echo "Iniciando HTTPServer: $https"
+            "$https" start
         fi
     done < "$f"
 done
@@ -43,11 +43,11 @@ for f in /var/opt/ansible/websphere*.asb; do
         CLUSTER_I=$(ls -1 "$CLUSTER_R" 2>/dev/null)
         for cluwasi in $CLUSTER_I; do
             if [ "$run_as_was60" = true ]; then
-                echo "Deteniendo WebSphere Cluster (was60): $cluwasi"
-                su - was60 -c "cd ${waspath}AppServer/profiles/Dmgr01/bin && ./wsadmin.sh -lang jython -f ./Baja_Cluster.py $cluwasi"
+                echo "Iniciando WebSphere Cluster (was60): $cluwasi"
+                su - was60 -c "cd ${waspath}AppServer/profiles/Dmgr01/bin && ./wsadmin.sh -lang jython -f ./alta_Cluster.py $cluwasi"
             else
-                echo "Deteniendo WebSphere Cluster: $cluwasi"
-                (cd "${waspath}AppServer/profiles/Dmgr01/bin" && ./wsadmin.sh -lang jython -f ./Baja_Cluster.py "$cluwasi")
+                echo "Iniciando WebSphere Cluster: $cluwasi"
+                (cd "${waspath}AppServer/profiles/Dmgr01/bin" && ./wsadmin.sh -lang jython -f ./alta_Cluster.py "$cluwasi")
             fi
         done
     fi
@@ -56,12 +56,12 @@ done
 # MQ
 for suffix in "" "8" "9" "90" "93"; do
     asb_file="/var/opt/ansible/mqm${suffix}.asb"
-    cmd_file="/var/opt/ansible/mqm${suffix}b.asb"
+    cmd_file="/var/opt/ansible/mqm${suffix}a.asb"
     if [ -f "$asb_file" ] && [ -f "$cmd_file" ]; then
         cmd=$(cat "$cmd_file")
         while read -r i; do
             [ -n "$i" ] || continue
-            echo "Deteniendo Canal/Cola MQ (mqm): $i con comando $cmd"
+            echo "Iniciando Canal/Cola MQ (mqm): $i con comando $cmd"
             su - mqm -c "$cmd $i"
         done < "$asb_file"
     fi
